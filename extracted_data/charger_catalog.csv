@@ -1,0 +1,4 @@
+type,name,standard,power_kw,efficiency,installation_cost_eur,suitable_for
+AC_11kW,AC Punjač 11 kW,IEC 62196 Type 2,11.0,0.94,1500,Standardno punjenje
+AC_22kW,AC Punjač 22 kW,IEC 62196 Type 2,22.0,0.93,2500,Brže AC punjenje
+DC_50kW,DC Brzi punjač 50 kW,CCS Combo 2,50.0,0.92,25000,Brzo punjenje

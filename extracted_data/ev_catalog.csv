@@ -1,0 +1,5 @@
+manufacturer,model,battery_capacity_kwh,usable_capacity_kwh,max_charging_power_kw,consumption_kwh_per_100km,max_range_km,price_eur
+Tesla,Model 3 SR,55.0,52.5,11.0,14.0,430,42990
+Kia,EV6 LR,77.4,74.0,11.0,16.8,528,51900
+Opel,Corsa-e,50.0,46.3,11.0,15.3,357,33900
+Renault,Megane E-Tech,60.0,57.0,22.0,15.5,450,39500

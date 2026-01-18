@@ -1,0 +1,75 @@
+{
+  "tariff_name": "HEP Plava Tarifa - Trozoni Model",
+  "country": "Croatia",
+  "currency": "EUR",
+  "effective_date": "2025-01-01",
+  "description": "Dinamicka tarifa za Hrvatsku s tri vremenske zone",
+  "zones": {
+    "off_peak": {
+      "name": "Niza tarifa (NT)",
+      "description": "Nocna i vikend potrosnja",
+      "price_eur_kwh": 0.066,
+      "color": "#4CAF50",
+      "periods": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "hours": [0, 1, 2, 3, 4, 5, 6, 22, 23]
+        },
+        {
+          "days": ["saturday", "sunday"],
+          "hours": "all"
+        }
+      ]
+    },
+    "mid_peak": {
+      "name": "Srednja tarifa (ST)",
+      "description": "Prijelazna razdoblja",
+      "price_eur_kwh": 0.125,
+      "color": "#FFC107",
+      "periods": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "hours": [7, 9, 12, 13, 17, 18, 19, 20, 21]
+        }
+      ]
+    },
+    "on_peak": {
+      "name": "Visa tarifa (VT)",
+      "description": "Vrhunac potrosnje",
+      "price_eur_kwh": 0.213,
+      "color": "#F44336",
+      "periods": [
+        {
+          "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+          "hours": [8, 10, 11, 14, 15, 16]
+        }
+      ]
+    }
+  },
+  "seasonal_adjustments": {
+    "summer": {
+      "months": [6, 7, 8],
+      "peak_hours_extended": [12, 13, 14, 15],
+      "multiplier": 1.15,
+      "description": "Ljeto - povecana potrosnja zbog klimatizacije"
+    },
+    "winter": {
+      "months": [12, 1, 2],
+      "peak_hours_extended": [17, 18, 19, 20],
+      "multiplier": 1.20,
+      "description": "Zima - povecana potrosnja zbog grijanja"
+    }
+  },
+  "network_charges": {
+    "distribution_fee": 0.012,
+    "transmission_fee": 0.008,
+    "renewable_levy": 0.005,
+    "total_fixed_kwh": 0.025
+  },
+  "notes": [
+    "Cijene su u EUR/kWh",
+    "Ukljucuje mrezarinu i doprinose",
+    "Bazira se na HEP tarifnom modelu 2025",
+    "Sezonske prilagodbe primjenjuju se automatski"
+  ]
+}

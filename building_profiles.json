@@ -1,0 +1,96 @@
+{
+  "building_types": {
+    "office": {
+      "name": "Poslovna zgrada",
+      "description": "Uredski prostor s laboratorijima",
+      "annual_consumption_kwh": 500000,
+      "working_hours": {
+        "start": 7,
+        "end": 19
+      },
+      "profile_characteristics": {
+        "weekday_base_load": 0.25,
+        "weekday_morning_ramp": {
+          "hours": [7, 8, 9],
+          "load_factor": [0.70, 0.85, 0.95]
+        },
+        "weekday_peak": {
+          "hours": [9, 10, 11, 12, 13, 14, 15, 16, 17],
+          "load_factor": 0.95
+        },
+        "weekday_evening_ramp": {
+          "hours": [17, 18, 19],
+          "load_factor": [0.90, 0.80, 0.60]
+        },
+        "weekend_load_factor": 0.10
+      },
+      "seasonal_factors": {
+        "winter": 1.35,
+        "summer": 1.25,
+        "spring_autumn": 1.0
+      }
+    },
+    
+    "hospital": {
+      "name": "Bolnica",
+      "description": "Zdravstvena ustanova - 24/7 rad",
+      "annual_consumption_kwh": 850000,
+      "working_hours": {
+        "start": 0,
+        "end": 24
+      },
+      "profile_characteristics": {
+        "base_load_24h": 0.70,
+        "morning_peak": {
+          "hours": [7, 8, 9, 10, 11],
+          "load_factor": 0.95
+        },
+        "afternoon_peak": {
+          "hours": [14, 15, 16, 17],
+          "load_factor": 0.90
+        },
+        "night_minimum": {
+          "hours": [1, 2, 3, 4, 5],
+          "load_factor": 0.60
+        },
+        "weekend_load_factor": 0.85
+      },
+      "seasonal_factors": {
+        "winter": 1.25,
+        "summer": 1.20,
+        "spring_autumn": 1.0
+      }
+    },
+    
+    "shopping_center": {
+      "name": "Trgovački centar",
+      "description": "Shopping mall s klimatizacijom",
+      "annual_consumption_kwh": 950000,
+      "working_hours": {
+        "start": 8,
+        "end": 22
+      },
+      "profile_characteristics": {
+        "weekday_base_load": 0.30,
+        "weekday_morning_ramp": {
+          "hours": [8, 9, 10],
+          "load_factor": [0.60, 0.80, 0.90]
+        },
+        "weekday_peak": {
+          "hours": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          "load_factor": 0.95
+        },
+        "weekday_evening_ramp": {
+          "hours": [20, 21, 22],
+          "load_factor": [0.85, 0.70, 0.40]
+        },
+        "weekend_load_factor": 1.10
+      },
+      "seasonal_factors": {
+        "winter": 1.45,
+        "summer": 1.50,
+        "spring_autumn": 1.0
+      }
+    }
+  }
+}
