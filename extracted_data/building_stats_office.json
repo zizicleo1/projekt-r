@@ -1,6 +1,6 @@
 {
   "building_type": "office",
-  "annual_consumption_kwh": 500000.0,
-  "average_power_kw": 57.077625570776256,
-  "peak_power_kw": 154.61902047414745
+  "annual_consumption_kwh": 500000.00000000006,
+  "average_power_kw": 57.07762557077626,
+  "peak_power_kw": 154.68393735088418
 }

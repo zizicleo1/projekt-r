@@ -40,6 +40,15 @@ export const fetchCroatianTariff = async () => {
   return data.tariff;
 };
 
+export const fetchEvCatalog = async () => {
+  const response = await fetch(`${API_URL}/api/profiles`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch EV catalog');
+  }
+  const data = await response.json();
+  return data.data?.ev_catalog || [];
+};
+
 export const runAdvancedSimulation = async (config) => {
   const response = await fetch(`${API_URL}/api/simulate-advanced`, {
     method: 'POST',
@@ -59,4 +68,27 @@ export const runAdvancedSimulation = async (config) => {
   }
 
   return data.data;
+};
+
+export const fetchPVGISData = async (params) => {
+  const response = await fetch(`${API_URL}/api/pvgis/fetch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || `PVGIS error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const getCurrentPVLocation = async () => {
+  const response = await fetch(`${API_URL}/api/pvgis/current-location`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch current PV location');
+  }
+  return response.json();
 };

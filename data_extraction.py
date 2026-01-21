@@ -76,7 +76,7 @@ class DataExtractor:
         start_date = datetime(2024, 1, 1)
         time_index = pd.date_range(
             start=start_date,
-            periods=35040,  # 365 dana * 96 (15min)
+            periods=35040,  
             freq='15min'
         )
         

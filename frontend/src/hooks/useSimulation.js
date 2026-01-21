@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DEFAULT_BUILDING_TYPES } from '../constants';
 import * as api from '../api/simulationApi';
 
+const BASE_PV_KW = 30;
+
 export function useSimulation() {
-  const [numEVs, setNumEVs] = useState(30);
-  const [pvScaling, setPvScaling] = useState(1.0);
+  const [pvCapacityKw, setPvCapacityKw] = useState(30);
   const [loading, setLoading] = useState(false);
   const [simulationData, setSimulationData] = useState(null);
   const [error, setError] = useState(null);
@@ -13,10 +14,16 @@ export function useSimulation() {
   const [buildingType, setBuildingType] = useState('office');
   const [useCroatianTariff, setUseCroatianTariff] = useState(true);
   const [buildingTypes, setBuildingTypes] = useState([]);
+  const [evCatalog, setEvCatalog] = useState([]);
+  const [evFleetConfig, setEvFleetConfig] = useState({});
   const [croatianTariff, setCroatianTariff] = useState(null);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonData, setComparisonData] = useState({ tariff1: null, tariff2: null });
   const [loadingComparison, setLoadingComparison] = useState(false);
+  const [simulationDate, setSimulationDate] = useState('2025-06-21');
+  const [pvgisData, setPvgisData] = useState(null);
+  const [loadingPvgis, setLoadingPvgis] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState({ latitude: 45.815, longitude: 15.982 });
 
   const checkBackend = useCallback(async () => {
     try {
@@ -25,7 +32,6 @@ export function useSimulation() {
     } catch (err) {
       setBackendStatus('error');
       setError('Backend nije dostupan. Pokreni: python main.py');
-      console.error('Backend connection failed:', err);
     }
   }, []);
 
@@ -33,18 +39,14 @@ export function useSimulation() {
     try {
       const data = await api.fetchScenarios();
       setScenarios(data);
-    } catch (err) {
-      console.error('Failed to fetch scenarios:', err);
-    }
+    } catch (err) {}
   }, []);
 
   const loadBuildingTypes = useCallback(async () => {
     try {
       const data = await api.fetchBuildingTypes();
       setBuildingTypes(data);
-      console.log('Building types loaded:', data);
     } catch (err) {
-      console.error('Failed to fetch building types:', err);
       setBuildingTypes(DEFAULT_BUILDING_TYPES);
     }
   }, []);
@@ -53,10 +55,19 @@ export function useSimulation() {
     try {
       const data = await api.fetchCroatianTariff();
       setCroatianTariff(data);
-      console.log('Croatian tariff loaded:', data);
-    } catch (err) {
-      console.error('Failed to fetch Croatian tariff:', err);
-    }
+    } catch (err) {}
+  }, []);
+
+  const loadEvCatalog = useCallback(async () => {
+    try {
+      const data = await api.fetchEvCatalog();
+      setEvCatalog(data);
+      const initialConfig = {};
+      data.forEach(ev => {
+        initialConfig[ev.id] = 0;
+      });
+      setEvFleetConfig(initialConfig);
+    } catch (err) {}
   }, []);
 
   useEffect(() => {
@@ -64,46 +75,101 @@ export function useSimulation() {
     loadScenarios();
     loadBuildingTypes();
     loadCroatianTariff();
-  }, [checkBackend, loadScenarios, loadBuildingTypes, loadCroatianTariff]);
+    loadEvCatalog();
+  }, [checkBackend, loadScenarios, loadBuildingTypes, loadCroatianTariff, loadEvCatalog]);
+
+  const fleetStats = useMemo(() => {
+    let totalCount = 0;
+    let totalCapacity = 0;
+    let totalChargingPower = 0;
+    let totalPrice = 0;
+
+    evCatalog.forEach(ev => {
+      const count = evFleetConfig[ev.id] || 0;
+      totalCount += count;
+      totalCapacity += count * ev.battery_capacity_kwh;
+      totalChargingPower += count * ev.max_charging_power_kw;
+      totalPrice += count * (ev.price_eur || 0);
+    });
+
+    return {
+      totalCount,
+      totalCapacity,
+      totalChargingPower,
+      totalPrice,
+      avgCapacity: totalCount > 0 ? totalCapacity / totalCount : 0,
+      avgChargingPower: totalCount > 0 ? totalChargingPower / totalCount : 0,
+    };
+  }, [evCatalog, evFleetConfig]);
+
+  const updateEvCount = (modelId, count) => {
+    const num = parseInt(count);
+    setEvFleetConfig(prev => ({
+      ...prev,
+      [modelId]: isNaN(num) || num < 0 ? 0 : num
+    }));
+  };
+
+  const getEvFleetConfigForApi = () => {
+    const config = [];
+    Object.entries(evFleetConfig).forEach(([modelId, count]) => {
+      if (count > 0) {
+        config.push({ model_id: parseInt(modelId), count });
+      }
+    });
+    return config.length > 0 ? config : null;
+  };
 
   const runSimulation = async () => {
+    if (fleetStats.totalCount === 0) {
+      setError('Molimo odaberite barem jedno vozilo');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`Starting ADVANCED simulation: ${numEVs} EVs, ${buildingType}, PV: ${pvScaling}x`);
+      const pvScaling = pvCapacityKw / BASE_PV_KW;
+      const evFleetConfigApi = getEvFleetConfigForApi();
 
       const data = await api.runAdvancedSimulation({
-        num_evs: numEVs,
-        scenario_name: `${buildingType}_${numEVs}EVs`,
+        ev_fleet_config: evFleetConfigApi,
+        scenario_name: `${buildingType}_${fleetStats.totalCount}EVs`,
         pv_scaling: pvScaling,
         building_type: buildingType,
-        use_croatian_tariff: useCroatianTariff
+        use_croatian_tariff: useCroatianTariff,
+        simulation_date: simulationDate
       });
 
       setSimulationData(data);
-      console.log('Simulation completed:', data.kpis);
     } catch (err) {
       setError(`Greska: ${err.message}`);
-      console.error('Simulation error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const runTariffComparison = async () => {
+    if (fleetStats.totalCount === 0) {
+      setError('Molimo odaberite barem jedno vozilo');
+      return;
+    }
+
     setLoadingComparison(true);
     setError(null);
     setShowComparison(true);
 
     try {
-      console.log(`Running tariff comparison: ${numEVs} EVs, ${buildingType}, PV: ${pvScaling}x`);
+      const pvScaling = pvCapacityKw / BASE_PV_KW;
+      const evFleetConfigApi = getEvFleetConfigForApi();
 
       const config = {
-        num_evs: numEVs,
-        scenario_name: `${buildingType}_${numEVs}EVs`,
+        ev_fleet_config: evFleetConfigApi,
+        scenario_name: `${buildingType}_${fleetStats.totalCount}EVs`,
         pv_scaling: pvScaling,
-        building_type: buildingType
+        building_type: buildingType,
+        simulation_date: simulationDate
       };
 
       const [data1, data2] = await Promise.all([
@@ -112,33 +178,68 @@ export function useSimulation() {
       ]);
 
       setComparisonData({ tariff1: data1, tariff2: data2 });
-      console.log('Comparison completed');
     } catch (err) {
       setError(`Greška pri usporedbi: ${err.message}`);
-      console.error('Comparison error:', err);
     } finally {
       setLoadingComparison(false);
     }
   };
 
-  const handleNumEVsChange = (value) => {
+  const handlePvCapacityChange = (value) => {
     const num = parseInt(value);
-    if (isNaN(num)) {
-      setNumEVs('');
-    } else if (num > 100) {
-      setNumEVs(100);
-    } else if (num < 1) {
-      setNumEVs(1);
+    if (isNaN(num) || value === '') {
+      setPvCapacityKw('');
+    } else if (num > 200) {
+      setPvCapacityKw(200);
+    } else if (num < 0) {
+      setPvCapacityKw(0);
     } else {
-      setNumEVs(num);
+      setPvCapacityKw(num);
     }
   };
 
+  const fetchPVGISData = async (params) => {
+    setLoadingPvgis(true);
+    setError(null);
+
+    try {
+      const data = await api.fetchPVGISData(params);
+      setPvgisData(data);
+      setSelectedLocation({
+        latitude: params.latitude,
+        longitude: params.longitude
+      });
+
+      if (params.peakpower) {
+        setPvCapacityKw(params.peakpower);
+      }
+
+      return data;
+    } catch (err) {
+      setError(`PVGIS greska: ${err.message}`);
+      throw err;
+    } finally {
+      setLoadingPvgis(false);
+    }
+  };
+
+  const handleLocationChange = (location) => {
+    setSelectedLocation(location);
+  };
+
   return {
-    numEVs,
-    setNumEVs,
-    pvScaling,
-    setPvScaling,
+    evCatalog,
+    evFleetConfig,
+    updateEvCount,
+    fleetStats,
+    pvCapacityKw,
+    setPvCapacityKw,
+    handlePvCapacityChange,
+    pvgisData,
+    loadingPvgis,
+    selectedLocation,
+    fetchPVGISData,
+    handleLocationChange,
     loading,
     simulationData,
     error,
@@ -146,9 +247,11 @@ export function useSimulation() {
     backendStatus,
     buildingType,
     setBuildingType,
+    buildingTypes,
+    simulationDate,
+    setSimulationDate,
     useCroatianTariff,
     setUseCroatianTariff,
-    buildingTypes,
     croatianTariff,
     showComparison,
     setShowComparison,
@@ -157,6 +260,5 @@ export function useSimulation() {
     checkBackend,
     runSimulation,
     runTariffComparison,
-    handleNumEVsChange,
   };
 }

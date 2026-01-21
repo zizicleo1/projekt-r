@@ -1,50 +1,33 @@
 import React from 'react';
 
 function ControlPanel({
-  numEVs,
-  onNumEVsChange,
   buildingType,
   onBuildingTypeChange,
   buildingTypes,
-  pvScaling,
-  onPvScalingChange,
+  simulationDate,
+  onSimulationDateChange,
   useCroatianTariff,
   onTariffChange,
   showComparison,
   loading,
   loadingComparison,
   backendStatus,
+  fleetStats,
   onRunSimulation,
   onToggleComparison,
 }) {
+  const getDayOfYear = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    return Math.floor(diff / oneDay);
+  };
+
   return (
     <div className="control-panel">
       <div className="controls">
-        <div className="control-group">
-          <label>
-            Broj elektricnih vozila:
-            <input
-              type="number"
-              min="1"
-              max="100"
-              step="1"
-              value={numEVs}
-              onChange={(e) => onNumEVsChange(e.target.value)}
-              disabled={loading || loadingComparison}
-              className="number-input"
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '1.1rem',
-                border: '2px solid #667eea',
-                borderRadius: '10px',
-                marginTop: '10px'
-              }}
-            />
-            <small>Min: 1 | Max: 100</small>
-          </label>
-        </div>
-
         <div className="control-group">
           <label>
             Tip zgrade:
@@ -85,50 +68,116 @@ function ControlPanel({
 
         <div className="control-group">
           <label>
-            PV skaliranje: <strong>{pvScaling.toFixed(1)}x</strong>
+            Datum simulacije:
             <input
-              type="range"
-              min="0.5"
-              max="2.0"
-              step="0.1"
-              value={pvScaling}
-              onChange={(e) => onPvScalingChange(parseFloat(e.target.value))}
+              type="date"
+              value={simulationDate}
+              onChange={(e) => onSimulationDateChange(e.target.value)}
               disabled={loading || loadingComparison}
+              min="2025-01-01"
+              max="2025-12-31"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '1rem',
+                border: '2px solid #667eea',
+                borderRadius: '10px',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                marginTop: '10px'
+              }}
             />
-            <small>Min: 0.5x | Max: 2.0x ({(pvScaling * 30).toFixed(0)} kW)</small>
           </label>
         </div>
 
         {!showComparison && (
           <div className="control-group">
-            <label>
-              Tarifa:
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginTop: '10px',
-                padding: '10px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={useCroatianTariff}
-                  onChange={(e) => onTariffChange(e.target.checked)}
-                  disabled={loading || loadingComparison}
-                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '0.95rem', color: '#333', fontWeight: '600' }}>
-                  {useCroatianTariff ? 'Hrvatska dinamicka tarifa (3-zone)' : 'HEP bijela tarifa (2-zone)'}
-                </span>
-              </div>
-              <small style={{ marginTop: '8px', display: 'block' }}>
-                {useCroatianTariff
-                  ? 'VT: 0.213 | ST: 0.125 | NT: 0.066 EUR/kWh'
-                  : 'VT: 0.122 | NT: 0.062 EUR/kWh'}
-              </small>
-            </label>
+            <label style={{ display: 'block', marginBottom: '10px' }}>Tarifa:</label>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}>
+              <button
+                type="button"
+                onClick={() => onTariffChange(true)}
+                disabled={loading || loadingComparison}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 15px',
+                  backgroundColor: useCroatianTariff ? '#dbeafe' : '#f8f9fa',
+                  border: useCroatianTariff ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  cursor: loading || loadingComparison ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  opacity: loading || loadingComparison ? 0.6 : 1,
+                }}
+              >
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: useCroatianTariff ? '5px solid #3b82f6' : '2px solid #9ca3af',
+                  backgroundColor: 'white',
+                  flexShrink: 0,
+                }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    color: useCroatianTariff ? '#3b82f6' : '#333'
+                  }}>
+                    Hrvatska dinamicka tarifa (3-zone)
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
+                    VT: 0.213 | ST: 0.125 | NT: 0.066 EUR/kWh
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onTariffChange(false)}
+                disabled={loading || loadingComparison}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 15px',
+                  backgroundColor: !useCroatianTariff ? '#dcfce7' : '#f8f9fa',
+                  border: !useCroatianTariff ? '2px solid #10b981' : '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  cursor: loading || loadingComparison ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  opacity: loading || loadingComparison ? 0.6 : 1,
+                }}
+              >
+                <div style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  border: !useCroatianTariff ? '5px solid #10b981' : '2px solid #9ca3af',
+                  backgroundColor: 'white',
+                  flexShrink: 0,
+                }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    color: !useCroatianTariff ? '#10b981' : '#333'
+                  }}>
+                    HEP bijela tarifa (2-zone)
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
+                    VT: 0.122 | NT: 0.062 EUR/kWh
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -137,7 +186,7 @@ function ControlPanel({
         <button
           className="btn-primary"
           onClick={onRunSimulation}
-          disabled={loading || loadingComparison || backendStatus !== 'connected'}
+          disabled={loading || loadingComparison || backendStatus !== 'connected' || fleetStats.totalCount === 0}
           style={{ flex: 1 }}
         >
           {loading ? (
@@ -146,14 +195,14 @@ function ControlPanel({
               Simulacija u tijeku...
             </>
           ) : (
-            'Pokreni simulaciju'
+            `Pokreni simulaciju (${fleetStats.totalCount} vozila)`
           )}
         </button>
 
         <button
           className="btn-primary"
           onClick={onToggleComparison}
-          disabled={loading || loadingComparison || backendStatus !== 'connected'}
+          disabled={loading || loadingComparison || backendStatus !== 'connected' || fleetStats.totalCount === 0}
           style={{
             flex: 1,
             backgroundColor: showComparison ? '#10b981' : '#667eea'
