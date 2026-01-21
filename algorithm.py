@@ -121,11 +121,68 @@ class V2BController:
             if 6 <= hour <= 20:
                 profile[t] = 30 * np.exp(-((hour - 13)**2) / (2 * 3**2))
         return profile
-    
-    def generate_ev_fleet(self, N: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+    def _load_profiles_for_date(self, date_str: str):
+        """
+        Učitaj profile za specifičan datum
+
+        Args:
+            date_str: Datum u formatu YYYY-MM-DD (npr. 2025-06-21)
+        """
+        # Izračunaj dan u godini (1-366) - koristimo samo mjesec i dan
+        # jer su podaci u bazi za 2020, ali korisnik može izabrati bilo koju godinu
+        from datetime import datetime
+        date = datetime.strptime(date_str, '%Y-%m-%d')
+        # Mapiraj na 2020 (prijestupna godina) da dobijemo pravilan dan
+        date_2020 = date.replace(year=2020)
+        day_of_year = date_2020.timetuple().tm_yday
+
+        # Izračunaj offset - svaki dan ima 96 slotova (24h * 4)
+        start_slot = (day_of_year - 1) * 96
+        end_slot = start_slot + 96
+
+        print(f"Loading profiles for date {date_str} (day {day_of_year})")
+        print(f"  Slot range: {start_slot} - {end_slot}")
+
+        # Učitaj building profile za taj dan
+        query_building = f"""
+            SELECT power_kw FROM building_load
+            ORDER BY timestamp
+            LIMIT 96 OFFSET {start_slot}
+        """
+        df_building = pd.read_sql(query_building, self.conn)
+        if len(df_building) == 96:
+            self.P_building = df_building['power_kw'].values
+            print(f"  Building profile loaded: {len(self.P_building)} slots")
+        else:
+            print(f"  WARNING: Building profile has {len(df_building)} slots, using default")
+            self.P_building = self._generate_default_building_profile()
+
+        # Učitaj PV profile za taj dan
+        query_pv = f"""
+            SELECT pv_power_kw FROM pv_generation
+            ORDER BY timestamp
+            LIMIT 96 OFFSET {start_slot}
+        """
+        df_pv = pd.read_sql(query_pv, self.conn)
+        if len(df_pv) == 96:
+            self.P_PV = df_pv['pv_power_kw'].values
+            self.pv_profile = self.P_PV
+            print(f"  PV profile loaded: {len(self.P_PV)} slots")
+        else:
+            print(f"  WARNING: PV profile has {len(df_pv)} slots, using default")
+            self.P_PV = self._generate_default_pv_profile()
+            self.pv_profile = self.P_PV
+
+    def generate_ev_fleet(self, N: int, ev_fleet_config: list = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Generiraj EV flotu
-        
+
+        Args:
+            N: Ukupan broj vozila
+            ev_fleet_config: Lista dict-ova s model_id i count za svaki model
+                             Npr: [{"model_id": 1, "count": 5}, {"model_id": 2, "count": 10}]
+
         Returns:
             A[i,t]: Availability matrica [N x T]
             B_EV[i]: Kapaciteti baterija [N]
@@ -135,36 +192,58 @@ class V2BController:
         # Gaussove distribucije (iz PDF-a)
         t_arr = np.random.normal(loc=34, scale=4, size=N)  # μ=8:30, σ=1h
         t_arr = np.clip(t_arr, 28, 40).astype(int)
-        
+
         t_dep = np.random.normal(loc=74, scale=8, size=N)  # μ=18:30, σ=2h
         t_dep = np.clip(t_dep, 64, 84).astype(int)
-        
+
         trip_dist = np.random.normal(loc=50, scale=10, size=N)  # μ=50km, σ=10km
         trip_dist = np.clip(trip_dist, 20, 100)
-        
+
         # Availability matrica A[i,t]
         A = np.zeros((N, self.T), dtype=int)
         for i in range(N):
             A[i, t_arr[i]:t_dep[i]] = 1
-        
+
         # Kapaciteti i snage
         B_EV = np.zeros(N)
         P_EV_max = np.zeros(N)
-        
-        for i in range(N):
-            model_id = np.random.randint(1, len(self.ev_catalog) + 1)
-            model = self.ev_catalog[model_id]
-            B_EV[i] = model['battery_kwh']
-            P_EV_max[i] = model['charging_power_kw']
-        
+
+        if ev_fleet_config:
+            # Koristi specificiranu konfiguraciju flote
+            ev_idx = 0
+            for config in ev_fleet_config:
+                model_id = config['model_id']
+                count = config['count']
+                if model_id in self.ev_catalog:
+                    model = self.ev_catalog[model_id]
+                    for _ in range(count):
+                        if ev_idx < N:
+                            B_EV[ev_idx] = model['battery_kwh']
+                            P_EV_max[ev_idx] = model['charging_power_kw']
+                            ev_idx += 1
+            # Ako ima vise vozila nego u konfiguraciji, popuni random
+            while ev_idx < N:
+                model_id = np.random.randint(1, len(self.ev_catalog) + 1)
+                model = self.ev_catalog[model_id]
+                B_EV[ev_idx] = model['battery_kwh']
+                P_EV_max[ev_idx] = model['charging_power_kw']
+                ev_idx += 1
+        else:
+            # Nasumicno dodijeli modele kao prije
+            for i in range(N):
+                model_id = np.random.randint(1, len(self.ev_catalog) + 1)
+                model = self.ev_catalog[model_id]
+                B_EV[i] = model['battery_kwh']
+                P_EV_max[i] = model['charging_power_kw']
+
         # Početni SOC - uniform[0.1, 0.8]
         SoC_init = np.random.uniform(0.10, 0.80, size=N)
-        
+
         # Dodatne informacije za prioritet
         self.t_arr = t_arr
         self.t_dep = t_dep
         self.trip_dist = trip_dist
-        
+
         return A, B_EV, P_EV_max, SoC_init
     
     def calculate_priority(self, i: int, t: int, SoC: float) -> int:
@@ -395,19 +474,35 @@ class V2BController:
         return P_EV, SoC_EV
     
     def run_simulation(self, num_evs: int, scenario_name: str = "default",
-                      pv_scaling: float = 1.0) -> Dict:
+                      pv_scaling: float = 1.0, ev_fleet_config: list = None,
+                      simulation_date: str = None) -> Dict:
         """
         Pokreni simulaciju
-        
+
+        Args:
+            num_evs: Ukupan broj vozila
+            scenario_name: Naziv scenarija
+            pv_scaling: PV skaliranje
+            ev_fleet_config: Lista dict-ova s model_id i count za svaki model
+            simulation_date: Datum simulacije u formatu YYYY-MM-DD (npr. 2020-06-21)
+
         Returns:
             Dictionary s results, kpis, fleet_summary
         """
         print(f"\n{'='*60}")
         print(f"Simulation: {num_evs} EVs, PV: {pv_scaling}x")
+        if ev_fleet_config:
+            print(f"Fleet config: {ev_fleet_config}")
+        if simulation_date:
+            print(f"Simulation date: {simulation_date}")
         print(f"{'='*60}\n")
-        
+
+        # Ako je specificiran datum, učitaj profile za taj dan
+        if simulation_date:
+            self._load_profiles_for_date(simulation_date)
+
         # Generiraj flotu
-        A, B_EV, P_EV_max, SoC_init = self.generate_ev_fleet(num_evs)
+        A, B_EV, P_EV_max, SoC_init = self.generate_ev_fleet(num_evs, ev_fleet_config)
         
         # Optimiziraj punjenje
         P_EV, SoC_EV = self.optimize_charging(A, B_EV, P_EV_max, SoC_init, pv_scaling)
@@ -479,7 +574,8 @@ class V2BController:
             'avg_initial_soc': round(np.mean(SoC_init), 3),
             'avg_final_soc': round(np.mean(final_socs), 3),
             'avg_required_soc': round(self.SoC_req, 3),
-            'avg_trip_distance_km': round(np.mean(self.trip_dist), 2)
+            'avg_trip_distance_km': round(np.mean(self.trip_dist), 2),
+            'simulation_date': simulation_date if simulation_date else 'default (first day)'
         }
         
         print(f"\nSimulation complete!")

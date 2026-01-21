@@ -1,12 +1,4 @@
-# main.py - ENHANCED VERSION
-"""
-V2B Digital Twin - FastAPI Backend with Croatian tariffs and building types
 
-New endpoints:
-- GET  /api/building-types    - List available building types
-- GET  /api/tariff/croatia    - Get Croatian dynamic tariff
-- POST /api/simulate-advanced - Run simulation with building type selection
-"""
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,10 +7,11 @@ from pydantic import BaseModel, Field
 import sqlite3
 import pandas as pd
 import uvicorn
-from typing import Optional, List
+from typing import Optional, List, Dict
 import json
 from datetime import datetime
 from pathlib import Path
+import httpx
 
 # Inicijalizacija FastAPI app
 app = FastAPI(
@@ -42,13 +35,22 @@ app.add_middleware(
 # PYDANTIC MODELS
 # ============================================================================
 
+class EvModelConfig(BaseModel):
+    """Konfiguracija za jedan model EV-a"""
+    model_id: int = Field(description="ID modela iz ev_catalog tablice")
+    count: int = Field(ge=0, description="Broj vozila ovog modela")
+
 class SimulationParams(BaseModel):
     """Parametri za simulaciju"""
-    num_evs: int = Field(
-        default=30, 
-        ge=10, 
-        le=50, 
-        description="Broj elektricnih vozila (10-50)"
+    num_evs: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=100,
+        description="Broj elektricnih vozila (zastarjelo - koristiti ev_fleet_config)"
+    )
+    ev_fleet_config: Optional[List[EvModelConfig]] = Field(
+        default=None,
+        description="Konfiguracija flote - lista modela i njihovih kolicina"
     )
     scenario_name: Optional[str] = Field(
         default="default",
@@ -57,8 +59,8 @@ class SimulationParams(BaseModel):
     pv_scaling: Optional[float] = Field(
         default=1.0,
         ge=0.0,
-        le=5.0,
-        description="PV skaliranje faktora (0.0-5.0)"
+        le=10.0,
+        description="PV skaliranje faktora (0.0-10.0)"
     )
     building_type: Optional[str] = Field(
         default="office",
@@ -68,12 +70,43 @@ class SimulationParams(BaseModel):
         default=True,
         description="Koristi hrvatsku dinamicku tarifu"
     )
+    simulation_date: Optional[str] = Field(
+        default=None,
+        description="Datum simulacije u formatu YYYY-MM-DD (npr. 2020-06-21)"
+    )
 
 class CompareRequest(BaseModel):
     """Request za usporedbu scenarija"""
     scenario_ids: List[int] = Field(
         default=[1, 2, 4],
         description="Lista ID-eva scenarija za usporedbu"
+    )
+
+class PVGISRequest(BaseModel):
+    """Request za PVGIS API - dohvat solarnih podataka za lokaciju"""
+    latitude: float = Field(
+        ge=-90, le=90,
+        description="Geografska sirina (latitude)"
+    )
+    longitude: float = Field(
+        ge=-180, le=180,
+        description="Geografska duzina (longitude)"
+    )
+    peakpower: float = Field(
+        default=30.0, ge=0.1, le=1000,
+        description="Vrsna snaga PV sustava u kW"
+    )
+    loss: float = Field(
+        default=14.0, ge=0, le=50,
+        description="Gubici sustava u %"
+    )
+    angle: float = Field(
+        default=35.0, ge=0, le=90,
+        description="Nagib panela u stupnjevima"
+    )
+    aspect: float = Field(
+        default=0.0, ge=-180, le=180,
+        description="Azimut (0=jug, 90=zapad, -90=istok)"
     )
 
 # ============================================================================
@@ -227,8 +260,8 @@ def get_profiles():
     conn = sqlite3.connect('v2b_system.db')
     
     try:
-        # 1. EV Katalog
-        ev_catalog_query = "SELECT * FROM ev_catalog ORDER BY id"
+        # 1. EV Katalog - koristi rowid kao id
+        ev_catalog_query = "SELECT rowid as id, * FROM ev_catalog ORDER BY rowid"
         ev_catalog = pd.read_sql(ev_catalog_query, conn).to_dict('records')
         
         # 2. Tariff
@@ -242,7 +275,7 @@ def get_profiles():
         
         # 3. Building profil uzorak
         building_query = """
-            SELECT timestamp, power_kw, time_slot
+            SELECT timestamp, power_kw, hour
             FROM building_load
             ORDER BY timestamp
             LIMIT 96
@@ -256,7 +289,7 @@ def get_profiles():
         
         # 4. PV profil uzorak
         pv_query = """
-            SELECT timestamp, power_kw, time_slot
+            SELECT timestamp, pv_power_kw as power_kw
             FROM pv_generation
             ORDER BY timestamp
             LIMIT 96
@@ -360,61 +393,75 @@ def run_simulation(params: SimulationParams):
 @app.post("/api/simulate-advanced")
 def run_simulation_advanced(params: SimulationParams):
     """
-    Pokreni V2B simulaciju - ADVANCED s odabirom tipa zgrade
+    Pokreni V2B simulaciju - ADVANCED s odabirom tipa zgrade i fleet konfiguracije
     """
     from algorithm import V2BController
-    
-    if not 10 <= params.num_evs <= 50:
+
+    # Izracunaj ukupan broj EVs iz fleet konfiguracije ili koristi num_evs
+    if params.ev_fleet_config:
+        total_evs = sum(item.count for item in params.ev_fleet_config)
+        fleet_config_dict = [{"model_id": item.model_id, "count": item.count} for item in params.ev_fleet_config]
+    else:
+        total_evs = params.num_evs if params.num_evs else 30
+        fleet_config_dict = None
+
+    if not 1 <= total_evs <= 100:
         raise HTTPException(
-            status_code=400, 
-            detail="num_evs must be between 10 and 50"
+            status_code=400,
+            detail="Total number of EVs must be between 1 and 100"
         )
-    
+
     try:
         print(f"\n{'='*60}")
         print(f"ADVANCED Simulation:")
-        print(f"   - EVs: {params.num_evs}")
+        print(f"   - Total EVs: {total_evs}")
+        if fleet_config_dict:
+            print(f"   - Fleet config: {fleet_config_dict}")
         print(f"   - Building type: {params.building_type}")
         print(f"   - PV scaling: {params.pv_scaling}x")
         print(f"   - Croatian tariff: {params.use_croatian_tariff}")
+        print(f"   - Simulation date: {params.simulation_date}")
         print(f"{'='*60}\n")
-        
+
         # Regeneriraj building profil ako je drugaciji tip
         from database import V2BDatabase
-        
+
         db = V2BDatabase('v2b_system.db')
-        
+
         # Generiraj building profil za odabrani tip
         db.generate_building_profile_by_type(params.building_type)
-        
+
         # Ucitaj tarifu
         db.load_tariff(use_croatian=params.use_croatian_tariff)
-        
+
         db.close()
-        
+
         # Pokreni simulaciju
         controller = V2BController('v2b_system.db')
-        
+
         if params.pv_scaling != 1.0:
             controller.pv_profile = controller.pv_profile * params.pv_scaling
             print(f"PV profile scaled by {params.pv_scaling}x")
-        
+
         simulation_data = controller.run_simulation(
-            num_evs=params.num_evs,
-            scenario_name=f"{params.building_type}_{params.num_evs}EVs"
+            num_evs=total_evs,
+            scenario_name=f"{params.building_type}_{total_evs}EVs",
+            ev_fleet_config=fleet_config_dict,
+            simulation_date=params.simulation_date
         )
-        
+
         controller.close()
-        
+
         print(f"\nSimulation completed successfully!")
         print(f"   - Total cost: {simulation_data['kpis']['total_cost_eur']:.2f} EUR")
         print(f"   - Peak reduction: {simulation_data['kpis']['peak_reduction_percent']:.1f}%\n")
-        
+
         return {
             "status": "success",
             "timestamp": datetime.now().isoformat(),
             "parameters": {
-                "num_evs": params.num_evs,
+                "num_evs": total_evs,
+                "ev_fleet_config": fleet_config_dict,
                 "building_type": params.building_type,
                 "pv_scaling": params.pv_scaling,
                 "croatian_tariff": params.use_croatian_tariff,
@@ -654,6 +701,189 @@ async def internal_error_handler(request, exc):
             "detail": str(exc)
         }
     )
+
+# ============================================================================
+# PVGIS API INTEGRATION
+# ============================================================================
+
+@app.post("/api/pvgis/fetch")
+async def fetch_pvgis_data(params: PVGISRequest):
+    """
+    Dohvati solarne podatke s PVGIS API-ja za odabranu lokaciju.
+    Vraca satne podatke za cijelu godinu i sprema ih kao PV profil.
+    """
+    try:
+        # PVGIS API URL za satne podatke
+        pvgis_url = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc"
+
+        # Parametri za PVGIS API
+        api_params = {
+            "lat": params.latitude,
+            "lon": params.longitude,
+            "peakpower": params.peakpower,
+            "loss": params.loss,
+            "angle": params.angle,
+            "aspect": params.aspect,
+            "outputformat": "json",
+            "pvcalculation": 1,
+            "pvtechchoice": "crystSi",  # Kristalni silicij
+            "startyear": 2020,
+            "endyear": 2020
+        }
+
+        # Async HTTP request prema PVGIS
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(pvgis_url, params=api_params)
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"PVGIS API error: {response.text}"
+                )
+
+            pvgis_data = response.json()
+
+        # Parsiraj PVGIS odgovor
+        hourly_data = pvgis_data.get("outputs", {}).get("hourly", [])
+
+        if not hourly_data:
+            raise HTTPException(
+                status_code=400,
+                detail="PVGIS nije vratio satne podatke za ovu lokaciju"
+            )
+
+        # Konvertiraj u DataFrame
+        df = pd.DataFrame(hourly_data)
+
+        # PVGIS vraca vrijeme u formatu "YYYYMMDDHHMM"
+        df['datetime'] = pd.to_datetime(df['time'], format='%Y%m%d:%H%M')
+        df['pv_power_kw'] = df['P'] / 1000.0  # W -> kW
+
+        # Zamijeni NaN vrijednosti s 0
+        df['pv_power_kw'] = df['pv_power_kw'].fillna(0)
+
+        # Interpoliraj na 15-minutnu rezoluciju koristeci reindex
+        df.set_index('datetime', inplace=True)
+        full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='15min')
+        df_15min = df[['pv_power_kw']].reindex(full_range).interpolate(method='linear')
+        df_15min = df_15min.fillna(0)  # Popuni preostale NaN
+
+        # Dodaj dodatne kolone
+        df_15min['timestamp'] = df_15min.index.strftime('%Y-%m-%d %H:%M:%S')
+        df_15min['hour'] = df_15min.index.hour
+        df_15min['month'] = df_15min.index.month
+        df_15min['day_of_year'] = df_15min.index.dayofyear
+
+        # Spremi kao CSV
+        output_path = Path('pv_profile_pvgis.csv')
+        df_15min.reset_index(drop=True).to_csv(output_path, index=False)
+
+        # Azuriraj bazu podataka
+        conn = sqlite3.connect('v2b_system.db')
+
+        # Obriši stare podatke
+        conn.execute("DELETE FROM pv_generation")
+
+        # Unesi nove podatke
+        for _, row in df_15min.reset_index().iterrows():
+            conn.execute("""
+                INSERT INTO pv_generation (timestamp, pv_power_kw, solar_irradiance_w_m2, temp_air_c)
+                VALUES (?, ?, ?, ?)
+            """, (
+                row['timestamp'],
+                row['pv_power_kw'],
+                0,  # PVGIS ne daje direktno irradiancu u ovom formatu
+                0   # Temperatura
+            ))
+
+        conn.commit()
+        conn.close()
+
+        # Statistike za response - konvertiraj u Python float da izbjegnes numpy tipove
+        total_annual_kwh = float(df_15min['pv_power_kw'].sum() * 0.25)  # 15min = 0.25h
+        peak_power_kw = float(df_15min['pv_power_kw'].max())
+        avg_daily_kwh = total_annual_kwh / 365
+
+        # Mjesecne statistike
+        df_15min_temp = df_15min.copy()
+        df_15min_temp['month'] = df_15min.index.month
+        monthly_production = df_15min_temp.groupby('month')['pv_power_kw'].sum() * 0.25
+
+        # Konvertiraj mjesecne podatke u obicne floatove
+        monthly_dict = {}
+        for i in range(1, 13):
+            val = monthly_production.get(i, 0)
+            monthly_dict[f"month_{i}"] = round(float(val) if not pd.isna(val) else 0.0, 1)
+
+        return {
+            "status": "success",
+            "message": "PV profil uspjesno generiran iz PVGIS podataka",
+            "location": {
+                "latitude": float(params.latitude),
+                "longitude": float(params.longitude)
+            },
+            "pv_system": {
+                "peak_power_kw": float(params.peakpower),
+                "tilt_angle": float(params.angle),
+                "azimuth": float(params.aspect),
+                "system_loss_percent": float(params.loss)
+            },
+            "statistics": {
+                "total_annual_production_kwh": round(total_annual_kwh, 1),
+                "peak_power_generated_kw": round(peak_power_kw, 2),
+                "average_daily_production_kwh": round(avg_daily_kwh, 2),
+                "capacity_factor_percent": round((total_annual_kwh / (params.peakpower * 8760)) * 100, 1),
+                "data_points": len(df_15min),
+                "resolution_minutes": 15
+            },
+            "monthly_production_kwh": monthly_dict,
+            "csv_path": str(output_path)
+        }
+
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail="PVGIS API timeout - pokusajte ponovo"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Greska pri dohvatu PVGIS podataka: {str(e)}"
+        )
+
+@app.get("/api/pvgis/current-location")
+def get_current_pv_location():
+    """Dohvati trenutno aktivnu PV lokaciju iz baze"""
+    try:
+        # Provjeri postoji li PVGIS profil
+        pvgis_csv = Path('pv_profile_pvgis.csv')
+
+        if pvgis_csv.exists():
+            df = pd.read_csv(pvgis_csv)
+            total_kwh = df['pv_power_kw'].sum() * 0.25
+            peak_kw = df['pv_power_kw'].max()
+
+            return {
+                "status": "success",
+                "has_pvgis_profile": True,
+                "statistics": {
+                    "total_annual_kwh": round(total_kwh, 1),
+                    "peak_power_kw": round(peak_kw, 2),
+                    "data_points": len(df)
+                }
+            }
+        else:
+            return {
+                "status": "success",
+                "has_pvgis_profile": False,
+                "message": "Nema PVGIS profila - koristite kartu za odabir lokacije"
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Greska: {str(e)}"
+        )
 
 # ============================================================================
 # MAIN

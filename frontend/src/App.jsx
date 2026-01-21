@@ -15,6 +15,8 @@ import {
 import { useSimulation } from './hooks/useSimulation';
 import Header from './components/Header';
 import ControlPanel from './components/ControlPanel';
+import VehicleSelector from './components/VehicleSelector';
+import LocationPicker from './components/LocationPicker';
 import ErrorBox from './components/ErrorBox';
 import KPICards from './components/KPICards';
 import SimulationParams from './components/SimulationParams';
@@ -38,18 +40,25 @@ ChartJS.register(
 
 function App() {
   const {
-    numEVs,
-    pvScaling,
-    setPvScaling,
+    evCatalog,
+    evFleetConfig,
+    updateEvCount,
+    fleetStats,
+    pvgisData,
+    loadingPvgis,
+    fetchPVGISData,
+    handleLocationChange,
     loading,
     simulationData,
     error,
     backendStatus,
     buildingType,
     setBuildingType,
+    buildingTypes,
+    simulationDate,
+    setSimulationDate,
     useCroatianTariff,
     setUseCroatianTariff,
-    buildingTypes,
     showComparison,
     setShowComparison,
     comparisonData,
@@ -57,7 +66,6 @@ function App() {
     checkBackend,
     runSimulation,
     runTariffComparison,
-    handleNumEVsChange,
   } = useSimulation();
 
   const handleToggleComparison = () => {
@@ -71,20 +79,35 @@ function App() {
     <div className="app">
       <Header />
 
+      <VehicleSelector
+        evCatalog={evCatalog}
+        evFleetConfig={evFleetConfig}
+        onUpdateCount={updateEvCount}
+        fleetStats={fleetStats}
+        disabled={loading || loadingComparison}
+      />
+
+      <LocationPicker
+        onLocationChange={handleLocationChange}
+        onFetchPVGIS={fetchPVGISData}
+        pvgisData={pvgisData}
+        loading={loadingPvgis}
+        disabled={loading || loadingComparison}
+      />
+
       <ControlPanel
-        numEVs={numEVs}
-        onNumEVsChange={handleNumEVsChange}
         buildingType={buildingType}
         onBuildingTypeChange={setBuildingType}
         buildingTypes={buildingTypes}
-        pvScaling={pvScaling}
-        onPvScalingChange={setPvScaling}
+        simulationDate={simulationDate}
+        onSimulationDateChange={setSimulationDate}
         useCroatianTariff={useCroatianTariff}
         onTariffChange={setUseCroatianTariff}
         showComparison={showComparison}
         loading={loading}
         loadingComparison={loadingComparison}
         backendStatus={backendStatus}
+        fleetStats={fleetStats}
         onRunSimulation={runSimulation}
         onToggleComparison={handleToggleComparison}
       />
@@ -101,7 +124,6 @@ function App() {
             buildingTypes={buildingTypes}
             buildingType={buildingType}
             fleetSummary={simulationData.fleet_summary}
-            pvScaling={pvScaling}
             useCroatianTariff={useCroatianTariff}
           />
 

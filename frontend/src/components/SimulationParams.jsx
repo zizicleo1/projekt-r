@@ -1,6 +1,20 @@
 import React from 'react';
 
-function SimulationParams({ buildingTypes, buildingType, fleetSummary, pvScaling, useCroatianTariff }) {
+function SimulationParams({ buildingTypes, buildingType, fleetSummary, useCroatianTariff }) {
+  const formatDate = (dateStr) => {
+    if (!dateStr || dateStr.includes('default')) return dateStr;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('hr-HR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="info-box" style={{
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -31,9 +45,9 @@ function SimulationParams({ buildingTypes, buildingType, fleetSummary, pvScaling
           </div>
         </div>
         <div>
-          <strong style={{ fontSize: '0.9rem', opacity: '0.9' }}>PV sustav:</strong>
+          <strong style={{ fontSize: '0.9rem', opacity: '0.9' }}>Datum simulacije:</strong>
           <div style={{ fontSize: '1.1rem', marginTop: '5px' }}>
-            {pvScaling}x ({(pvScaling * 30).toFixed(0)} kW)
+            {formatDate(fleetSummary.simulation_date)}
           </div>
         </div>
         <div>
