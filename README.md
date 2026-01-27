@@ -58,9 +58,9 @@ Backend radi na: http://localhost:8000
 cd frontend
 npm run dev
 ```
-Frontend radi na: http://localhost:5173
+Frontend radi na: http://localhost:3000
 
 ## 6. Pristup aplikaciji
 
-- **Aplikacija:** http://localhost:5173
+- **Aplikacija:** http://localhost:3000
 - **API dokumentacija:** http://localhost:8000/docs
