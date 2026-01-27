@@ -8,6 +8,10 @@ export const baseChartOptions = {
   plugins: {
     legend: {
       position: 'top',
+      labels: {
+        usePointStyle: true,
+        padding: 15,
+      }
     },
     tooltip: {
       callbacks: {
@@ -26,13 +30,31 @@ export const baseChartOptions = {
   },
   scales: {
     x: {
+      title: {
+        display: true,
+        text: 'Vrijeme (h)',
+        font: { weight: 'bold' }
+      },
       ticks: {
-        maxRotation: 45,
-        minRotation: 45,
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
       }
     },
     y: {
       beginAtZero: true,
+      title: {
+        display: true,
+        text: 'Snaga (kW)',
+        font: { weight: 'bold' }
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
     }
   }
 };
@@ -40,14 +62,34 @@ export const baseChartOptions = {
 export const peakShavingChartOptions = {
   ...baseChartOptions,
   scales: {
-    ...baseChartOptions.scales,
+    x: {
+      title: {
+        display: true,
+        text: 'Vrijeme (h)',
+        font: { weight: 'bold' }
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    },
     y: {
       type: 'linear',
       display: true,
       position: 'left',
+      beginAtZero: true,
       title: {
         display: true,
-        text: 'Snaga (kW)'
+        text: 'Potrošnja snage (kW)',
+        font: { weight: 'bold' }
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
       }
     },
     y1: {
@@ -56,7 +98,8 @@ export const peakShavingChartOptions = {
       position: 'right',
       title: {
         display: true,
-        text: 'Smanjenje (kW)'
+        text: 'EV snaga (kW)',
+        font: { weight: 'bold' }
       },
       grid: {
         drawOnChartArea: false,
@@ -68,12 +111,98 @@ export const peakShavingChartOptions = {
 export const evActivityChartOptions = {
   ...baseChartOptions,
   scales: {
-    ...baseChartOptions.scales,
+    x: {
+      title: {
+        display: true,
+        text: 'Vrijeme (h)',
+        font: { weight: 'bold' }
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    },
     y: {
       beginAtZero: false,
       title: {
         display: true,
-        text: 'Broj vozila'
+        text: 'Broj vozila',
+        font: { weight: 'bold' }
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    }
+  }
+};
+
+export const socChartOptions = {
+  ...baseChartOptions,
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: 'Vrijeme (h)',
+        font: { weight: 'bold' }
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    },
+    y: {
+      beginAtZero: true,
+      max: 100,
+      title: {
+        display: true,
+        text: 'SOC (%)',
+        font: { weight: 'bold' }
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    }
+  }
+};
+
+export const comparisonChartOptions = {
+  ...baseChartOptions,
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: 'Vrijeme (h)',
+        font: { weight: 'bold' }
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
+      }
+    },
+    y: {
+      beginAtZero: true,
+      title: {
+        display: true,
+        text: 'Opterećenje mreže (kW)',
+        font: { weight: 'bold' }
+      },
+      grid: {
+        display: true,
+        color: 'rgba(0, 0, 0, 0.1)',
       }
     }
   }

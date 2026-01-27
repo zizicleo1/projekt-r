@@ -1,71 +1,104 @@
 import React from 'react';
 import { Line, Bar } from 'react-chartjs-2';
-import { baseChartOptions, peakShavingChartOptions, evActivityChartOptions } from '../utils/chartConfig';
+import { baseChartOptions, peakShavingChartOptions, evActivityChartOptions, socChartOptions, comparisonChartOptions } from '../utils/chartConfig';
 import {
   preparePowerChart,
   prepareCostChart,
   prepareEVActivityChart,
   prepareSOCChart,
-  preparePeakShavingChart
+  preparePeakShavingChart,
+  prepareComparisonChart
 } from '../utils/chartDataPreparation';
 
 function SimulationCharts({ simulationData }) {
+  // Detektiraj da li je dvotarifni ili trotarifni model
+  const hasMidPeak = simulationData.results.some(r =>
+    r.tariff_period === 'mid-peak' || r.tariff_period === 'mid_peak'
+  );
+
   return (
     <div className="charts-container">
       <div className="chart-wrapper">
-        <h2>Energetski tokovi (24h)</h2>
+        <h2>Energetska bilanca sustava</h2>
         <div className="chart-box">
           <Line data={preparePowerChart(simulationData)} options={baseChartOptions} />
+        </div>
+        <div className="chart-info">
+          <p><strong>Crvena:</strong> Potrošnja zgrade (P_zgrada)</p>
+          <p><strong>Plava:</strong> Opterećenje s V2B optimizacijom (P_mreža)</p>
+          <p><strong>Zelena:</strong> PV proizvodnja (P_PV)</p>
         </div>
       </div>
 
       <div className="chart-wrapper">
-        <h2>Smanjenje vrsnog opterecenja (V2B analiza)</h2>
+        <h2>V2B Peak Shaving - Smanjenje vršnog opterećenja</h2>
         <div className="chart-box">
           <Line data={preparePeakShavingChart(simulationData)} options={peakShavingChartOptions} />
         </div>
         <div className="chart-info">
-          <p>
-            <strong>Baseline:</strong> Opterecenje bez V2B (crvena linija)
-          </p>
-          <p>
-            <strong>S V2B:</strong> Smanjeno opterecenje koristenjem baterija vozila (zelena linija)
-          </p>
-          <p>
-            <strong>Ustedeno:</strong> Razlika energije (zeleni barovi) = {simulationData.kpis.total_ev_energy_discharged_kwh.toFixed(1)} kWh
-          </p>
+          <p><strong>Crvena linija:</strong> Potrošnja zgrade bez optimizacije</p>
+          <p><strong>Plava površina:</strong> Opterećenje s V2B (smanjeno)</p>
+          <p><strong>Zelena površina:</strong> PV proizvodnja</p>
+          <p><strong>Crveni barovi:</strong> EV punjenje (+{simulationData.kpis.total_ev_energy_charged_kwh.toFixed(1)} kWh)</p>
+          <p><strong>Plavi barovi:</strong> EV pražnjenje V2B (-{simulationData.kpis.total_ev_energy_discharged_kwh.toFixed(1)} kWh)</p>
         </div>
       </div>
 
       <div className="chart-wrapper">
-        <h2>Napunjenost vozila kroz dan (SOC)</h2>
+        <h2>Stanje napunjenosti baterija (SOC)</h2>
         <div className="chart-box">
-          <Line data={prepareSOCChart(simulationData)} options={baseChartOptions} />
+          <Line data={prepareSOCChart(simulationData)} options={socChartOptions} />
         </div>
         <div className="chart-info">
-          <p>
-            <strong>Pocetni SOC:</strong> {(simulationData.fleet_summary.avg_initial_soc * 100).toFixed(1)}%
-          </p>
-          <p>
-            <strong>Zavrsni SOC:</strong> {(simulationData.fleet_summary.avg_final_soc * 100).toFixed(1)}%
-          </p>
-          <p>
-            <strong>Vozila s ciljanim SOC-om:</strong> {simulationData.kpis.evs_meeting_target} / {simulationData.kpis.total_evs} ({simulationData.kpis.ev_success_rate_percent.toFixed(1)}%)
-          </p>
+          <p><strong>Formula:</strong> SoC_k+1 = SoC_k + (Δt/B) · (η_punj · P_punj - P_praž/η_praž)</p>
+          <p><strong>Početni SOC:</strong> {(simulationData.fleet_summary.avg_initial_soc * 100).toFixed(1)}%</p>
+          <p><strong>Završni SOC:</strong> {(simulationData.fleet_summary.avg_final_soc * 100).toFixed(1)}%</p>
+          <p><strong>Uspješnost:</strong> {simulationData.kpis.evs_meeting_target}/{simulationData.kpis.total_evs} vozila dostiglo cilj ({simulationData.kpis.ev_success_rate_percent.toFixed(1)}%)</p>
         </div>
       </div>
 
       <div className="chart-wrapper">
-        <h2>Distribucija troskova po tarifama</h2>
+        <h2>Distribucija troškova po tarifnim zonama</h2>
         <div className="chart-box">
           <Bar data={prepareCostChart(simulationData)} options={baseChartOptions} />
         </div>
+        <div className="chart-info">
+          {hasMidPeak ? (
+            <>
+              <p><strong>NT (Niska):</strong> 23:00-09:00 - 0.066 EUR/kWh</p>
+              <p><strong>ST (Srednja):</strong> 09:00-10:00, 12:00-13:00, 17:00-23:00 - 0.125 EUR/kWh</p>
+              <p><strong>VT (Visoka):</strong> 10:00-12:00, 13:00-17:00 - 0.213 EUR/kWh</p>
+            </>
+          ) : (
+            <>
+              <p><strong>NT (Niska tarifa):</strong> 21:00-07:00 - 0.066 EUR/kWh</p>
+              <p><strong>VT (Visoka tarifa):</strong> 07:00-21:00 - 0.150 EUR/kWh</p>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="chart-wrapper">
-        <h2>Aktivnost elektricnih vozila</h2>
+        <h2>Aktivnost EV flote kroz dan</h2>
         <div className="chart-box">
           <Bar data={prepareEVActivityChart(simulationData)} options={evActivityChartOptions} />
+        </div>
+        <div className="chart-info">
+          <p><strong>Crveno (+):</strong> Broj vozila koja se pune</p>
+          <p><strong>Plavo (-):</strong> Broj vozila koja prazne bateriju (V2B)</p>
+        </div>
+      </div>
+
+      <div className="chart-wrapper">
+        <h2>Usporedba: Bez V2B vs S V2B</h2>
+        <div className="chart-box">
+          <Line data={prepareComparisonChart(simulationData)} options={comparisonChartOptions} />
+        </div>
+        <div className="chart-info">
+          <p><strong>Crvena linija:</strong> Opterećenje mreže BEZ V2B (P_zgrada - P_PV)</p>
+          <p><strong>Plava površina:</strong> Opterećenje mreže S V2B optimizacijom</p>
+          <p><strong>Vršno opterećenje:</strong> Baseline {simulationData.kpis.peak_load_baseline_kw} kW → S V2B {simulationData.kpis.peak_load_with_v2b_kw} kW</p>
+          <p><strong>Smanjenje:</strong> {simulationData.kpis.peak_reduction_percent.toFixed(1)}%</p>
         </div>
       </div>
     </div>

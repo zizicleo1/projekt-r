@@ -172,10 +172,10 @@ export function useSimulation() {
         simulation_date: simulationDate
       };
 
-      const [data1, data2] = await Promise.all([
-        api.runAdvancedSimulation({ ...config, use_croatian_tariff: true }),
-        api.runAdvancedSimulation({ ...config, use_croatian_tariff: false })
-      ]);
+      // Run simulations sequentially to avoid race condition
+      // (both simulations use the same database for tariff storage)
+      const data1 = await api.runAdvancedSimulation({ ...config, use_croatian_tariff: true });
+      const data2 = await api.runAdvancedSimulation({ ...config, use_croatian_tariff: false });
 
       setComparisonData({ tariff1: data1, tariff2: data2 });
     } catch (err) {

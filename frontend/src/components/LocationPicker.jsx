@@ -148,7 +148,7 @@ function LocationPicker({
             minWidth: '200px'
           }}
         >
-          {loading ? 'Dohvacam...' : 'Dohvati PV profil'}
+          {loading ? 'Dohvaćam...' : 'Dohvati PV profil'}
         </button>
       </div>
 
@@ -165,14 +165,14 @@ function LocationPicker({
 
           {pvgisData.monthly_production_kwh && (
             <div>
-              <strong style={{ color: '#166534' }}>Mjesecna proizvodnja (kWh):</strong>
+              <strong style={{ color: '#166534' }}>Mjesečna proizvodnja (kWh):</strong>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(6, 1fr)',
                 gap: '8px',
                 marginTop: '10px'
               }}>
-                {['Sij', 'Velj', 'Ozu', 'Tra', 'Svi', 'Lip', 'Srp', 'Kol', 'Ruj', 'Lis', 'Stu', 'Pro'].map((month, i) => (
+                {['Siječanj', 'Veljača', 'Ožujak', 'Travanj', 'Svibanj', 'Lipanj', 'Srpanj', 'Kolovoz', 'Rujan', 'Listopad', 'Studeni', 'Prosinac'].map((month, i) => (
                   <div
                     key={i}
                     style={{
