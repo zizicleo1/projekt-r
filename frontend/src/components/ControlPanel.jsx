@@ -68,11 +68,23 @@ function ControlPanel({
 
         <div className="control-group">
           <label>
-            Datum simulacije:
+            Datum simulacije (2025):
             <input
               type="date"
               value={simulationDate}
-              onChange={(e) => onSimulationDateChange(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value) {
+                  // Forsiraj godinu 2025
+                  const parts = value.split('-');
+                  if (parts[0] !== '2025') {
+                    const correctedDate = `2025-${parts[1]}-${parts[2]}`;
+                    onSimulationDateChange(correctedDate);
+                  } else {
+                    onSimulationDateChange(value);
+                  }
+                }
+              }}
               disabled={loading || loadingComparison}
               min="2025-01-01"
               max="2025-12-31"
@@ -87,6 +99,9 @@ function ControlPanel({
                 marginTop: '10px'
               }}
             />
+            <small style={{ marginTop: '5px', display: 'block', color: '#666' }}>
+              Podaci su dostupni samo za 2025. godinu
+            </small>
           </label>
         </div>
 
@@ -130,7 +145,7 @@ function ControlPanel({
                     fontWeight: '600',
                     color: useCroatianTariff ? '#3b82f6' : '#333'
                   }}>
-                    Hrvatska dinamicka tarifa (3-zone)
+                    Hrvatska dinamička tarifa (trotarifna naplata)
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
                     VT: 0.213 | ST: 0.125 | NT: 0.066 EUR/kWh
@@ -170,7 +185,7 @@ function ControlPanel({
                     fontWeight: '600',
                     color: !useCroatianTariff ? '#10b981' : '#333'
                   }}>
-                    HEP bijela tarifa (2-zone)
+                    HEP bijela tarifa (dvotarifna naplata)
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
                     VT: 0.122 | NT: 0.062 EUR/kWh

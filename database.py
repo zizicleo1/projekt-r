@@ -418,21 +418,22 @@ class V2BDatabase:
         return tariffs
     
     def _create_default_tariff(self):
-        """Default HEP tariff u eurima"""
+        """Default HEP 2-tarifni model (NT/VT) u eurima"""
         tariffs = []
-        
+
         for slot in range(96):
             hour = slot // 4
-            
-            if hour < 9 or hour >= 23:
-                period, price = 'off-peak', 0.066
-            elif 10 <= hour < 12 or 13 <= hour < 17:
-                period, price = 'on-peak', 0.213
+
+            # 2-tarifni model:
+            # NT (niza tarifa): 21:00-07:00 + vikend
+            # VT (visa tarifa): 07:00-21:00 radnim danom
+            if hour < 7 or hour >= 21:
+                period, price = 'off_peak', 0.066  # NT - niza tarifa
             else:
-                period, price = 'mid-peak', 0.125
-            
+                period, price = 'on_peak', 0.150   # VT - visa tarifa
+
             tariffs.append((slot, hour, period, price))
-        
+
         return tariffs
     
     def generate_building_profile_by_type(self, building_type='office', config_file='building_profiles.json'):

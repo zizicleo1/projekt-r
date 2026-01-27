@@ -12,6 +12,34 @@ import json
 from datetime import datetime
 from pathlib import Path
 import httpx
+import logging
+
+# Konfiguriraj logging - filtriraj spam zahtjeve
+class EndpointFilter(logging.Filter):
+    """Filter za uklanjanje spam zahtjeva iz loga"""
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Ignoriraj poznate spam putanje (routeri, skeneri, itd.)
+        spam_paths = [
+            '/loginMsg.js',
+            '/cgi/',
+            '/admin',
+            '/favicon.ico',
+            '/.env',
+            '/wp-',
+            '/phpMyAdmin',
+        ]
+        message = record.getMessage()
+        for path in spam_paths:
+            if path in message:
+                return False
+        return True
+
+# Primijeni filter na uvicorn access logger
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+
+# Potisni WebSocket upozorenja (ne koristimo WebSocket)
+logging.getLogger("uvicorn.error").setLevel(logging.ERROR)
+logging.getLogger("websockets").setLevel(logging.ERROR)
 
 # Inicijalizacija FastAPI app
 app = FastAPI(

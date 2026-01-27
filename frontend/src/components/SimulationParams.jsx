@@ -53,7 +53,7 @@ function SimulationParams({ buildingTypes, buildingType, fleetSummary, useCroati
         <div>
           <strong style={{ fontSize: '0.9rem', opacity: '0.9' }}>Tarifa:</strong>
           <div style={{ fontSize: '1.1rem', marginTop: '5px' }}>
-            {useCroatianTariff ? 'Hrvatska (3-zone)' : 'HEP (2-zone)'}
+            {useCroatianTariff ? 'Trotarifna naplata' : 'Dvotarifna naplata'}
           </div>
         </div>
       </div>

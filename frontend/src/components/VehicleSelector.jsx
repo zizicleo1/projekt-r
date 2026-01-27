@@ -32,7 +32,7 @@ function VehicleSelector({
         backgroundColor: 'white',
         borderRadius: '15px',
       }}>
-        Ucitavam katalog vozila...
+        Učitavam katalog vozila...
       </div>
     );
   }
@@ -133,7 +133,7 @@ function VehicleSelector({
                     marginTop: '5px'
                   }}>
                     <div>Baterija: {ev.battery_capacity_kwh} kWh</div>
-                    <div>Punjac: {ev.max_charging_power_kw} kW</div>
+                    <div>Punjač: {ev.max_charging_power_kw} kW</div>
                     {ev.max_range_km && <div>Domet: {ev.max_range_km} km</div>}
                     {ev.price_eur && <div style={{ color: '#667eea', fontWeight: '600', marginTop: '3px' }}>Cijena: {ev.price_eur.toLocaleString('hr-HR')} EUR</div>}
                   </div>
@@ -247,7 +247,7 @@ function VehicleSelector({
               <strong>Ukupna snaga punjenja:</strong> {fleetStats.totalChargingPower.toFixed(1)} kW
             </div>
             <div style={{ color: '#166534' }}>
-              <strong>Prosjecni kapacitet:</strong> {fleetStats.avgCapacity.toFixed(1)} kWh
+              <strong>Prosječni kapacitet:</strong> {fleetStats.avgCapacity.toFixed(1)} kWh
             </div>
             {fleetStats.totalPrice > 0 && (
               <div style={{ color: '#166534' }}>

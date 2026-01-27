@@ -21,7 +21,7 @@ function TariffComparison({ comparisonData }) {
 
 function FinancialComparisonHeader({ tariff1, tariff2 }) {
   const diff = Math.abs(tariff1.kpis.total_cost_eur - tariff2.kpis.total_cost_eur);
-  const hrvCheaper = tariff1.kpis.total_cost_eur < tariff2.kpis.total_cost_eur;
+  const troCheaper = tariff1.kpis.total_cost_eur < tariff2.kpis.total_cost_eur;
 
   return (
     <div style={{
@@ -34,7 +34,7 @@ function FinancialComparisonHeader({ tariff1, tariff2 }) {
       <h3 style={{ marginBottom: '20px', fontSize: '1.3rem' }}>Financijska usporedba</h3>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
         <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#dbeafe', borderRadius: '10px' }}>
-          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>Hrvatska tarifa</div>
+          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>Trotarifna naplata</div>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
             {formatCurrency(tariff1.kpis.total_cost_eur)}
           </div>
@@ -42,16 +42,16 @@ function FinancialComparisonHeader({ tariff1, tariff2 }) {
 
         <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#f3f4f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
           <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>Razlika</div>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: hrvCheaper ? '#10b981' : '#ef4444' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: troCheaper ? '#10b981' : '#ef4444' }}>
             {formatCurrency(diff)}
           </div>
           <div style={{ fontSize: '0.85rem', marginTop: '5px', color: '#666' }}>
-            {hrvCheaper ? 'Hrvatska jeftinija' : 'HEP jeftinija'}
+            {troCheaper ? 'Trotarifna jeftinija' : 'Dvotarifna jeftinija'}
           </div>
         </div>
 
         <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#dcfce7', borderRadius: '10px' }}>
-          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>HEP tarifa</div>
+          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>Dvotarifna naplata</div>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
             {formatCurrency(tariff2.kpis.total_cost_eur)}
           </div>
@@ -98,7 +98,7 @@ function PowerFlowComparison({ tariff1, tariff2 }) {
   return (
     <ChartSection title="Energetski tokovi (24h) - Usporedba">
       <ChartColumn
-        title="Hrvatska tarifa (3-zone)"
+        title="Trotarifna naplata (VT/ST/NT)"
         color="#3b82f6"
         bgColor="#f0f9ff"
         stats={
@@ -112,7 +112,7 @@ function PowerFlowComparison({ tariff1, tariff2 }) {
       </ChartColumn>
 
       <ChartColumn
-        title="HEP tarifa (2-zone)"
+        title="Dvotarifna naplata (VT/NT)"
         color="#10b981"
         bgColor="#f0fdf4"
         stats={
@@ -132,7 +132,7 @@ function PeakShavingComparison({ tariff1, tariff2 }) {
   return (
     <ChartSection title="Smanjenje vršnog opterećenja (V2B analiza) - Usporedba">
       <ChartColumn
-        title="Hrvatska tarifa"
+        title="Trotarifna naplata"
         color="#3b82f6"
         bgColor="#f0f9ff"
         stats={
@@ -146,7 +146,7 @@ function PeakShavingComparison({ tariff1, tariff2 }) {
       </ChartColumn>
 
       <ChartColumn
-        title="HEP tarifa"
+        title="Dvotarifna naplata"
         color="#10b981"
         bgColor="#f0fdf4"
         stats={
@@ -166,7 +166,7 @@ function CostDistributionComparison({ tariff1, tariff2 }) {
   return (
     <ChartSection title="Distribucija troškova po tarifama - Usporedba">
       <ChartColumn
-        title="Hrvatska tarifa (VT/ST/NT)"
+        title="Trotarifna naplata (VT/ST/NT)"
         color="#3b82f6"
         bgColor="#f0f9ff"
         stats={
@@ -181,13 +181,13 @@ function CostDistributionComparison({ tariff1, tariff2 }) {
       </ChartColumn>
 
       <ChartColumn
-        title="HEP tarifa (VT/NT)"
+        title="Dvotarifna naplata (VT/NT)"
         color="#10b981"
         bgColor="#f0fdf4"
         stats={
           <>
-            <div><strong>VT:</strong> 0.122 EUR/kWh</div>
-            <div><strong>NT:</strong> 0.062 EUR/kWh</div>
+            <div><strong>VT:</strong> 0.150 EUR/kWh</div>
+            <div><strong>NT:</strong> 0.066 EUR/kWh</div>
             <div style={{ marginTop: '5px', opacity: 0.5 }}><strong>ST:</strong> N/A</div>
           </>
         }
@@ -202,7 +202,7 @@ function EVActivityComparison({ tariff1, tariff2 }) {
   return (
     <ChartSection title="Aktivnost električnih vozila - Usporedba">
       <ChartColumn
-        title="Hrvatska tarifa"
+        title="Trotarifna naplata"
         color="#3b82f6"
         bgColor="#f0f9ff"
         stats={
@@ -216,7 +216,7 @@ function EVActivityComparison({ tariff1, tariff2 }) {
       </ChartColumn>
 
       <ChartColumn
-        title="HEP tarifa"
+        title="Dvotarifna naplata"
         color="#10b981"
         bgColor="#f0fdf4"
         stats={
@@ -239,21 +239,21 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
       val1: formatCurrency(tariff1.kpis.total_cost_eur),
       val2: formatCurrency(tariff2.kpis.total_cost_eur),
       diff: formatCurrency(Math.abs(tariff1.kpis.total_cost_eur - tariff2.kpis.total_cost_eur)),
-      better: tariff1.kpis.total_cost_eur < tariff2.kpis.total_cost_eur ? 'HRV' : 'HEP'
+      better: tariff1.kpis.total_cost_eur < tariff2.kpis.total_cost_eur ? 'TRO' : 'DVO'
     },
     {
       label: 'Vršna snaga',
       val1: `${formatNumber(tariff1.kpis.peak_load_with_v2b_kw)} kW`,
       val2: `${formatNumber(tariff2.kpis.peak_load_with_v2b_kw)} kW`,
       diff: `${formatNumber(Math.abs(tariff1.kpis.peak_load_with_v2b_kw - tariff2.kpis.peak_load_with_v2b_kw))} kW`,
-      better: tariff1.kpis.peak_load_with_v2b_kw < tariff2.kpis.peak_load_with_v2b_kw ? 'HRV' : 'HEP'
+      better: tariff1.kpis.peak_load_with_v2b_kw < tariff2.kpis.peak_load_with_v2b_kw ? 'TRO' : 'DVO'
     },
     {
       label: 'Smanjenje vršnog opterećenja',
       val1: `${formatNumber(tariff1.kpis.peak_reduction_percent)}%`,
       val2: `${formatNumber(tariff2.kpis.peak_reduction_percent)}%`,
       diff: `${formatNumber(Math.abs(tariff1.kpis.peak_reduction_percent - tariff2.kpis.peak_reduction_percent))}%`,
-      better: tariff1.kpis.peak_reduction_percent > tariff2.kpis.peak_reduction_percent ? 'HRV' : 'HEP'
+      better: tariff1.kpis.peak_reduction_percent > tariff2.kpis.peak_reduction_percent ? 'TRO' : 'DVO'
     },
     {
       label: 'Ukupno punjeno',
@@ -267,7 +267,7 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
       val1: `${formatNumber(tariff1.kpis.total_ev_energy_discharged_kwh)} kWh`,
       val2: `${formatNumber(tariff2.kpis.total_ev_energy_discharged_kwh)} kWh`,
       diff: `${formatNumber(Math.abs(tariff1.kpis.total_ev_energy_discharged_kwh - tariff2.kpis.total_ev_energy_discharged_kwh))} kWh`,
-      better: tariff1.kpis.total_ev_energy_discharged_kwh > tariff2.kpis.total_ev_energy_discharged_kwh ? 'HRV' : 'HEP'
+      better: tariff1.kpis.total_ev_energy_discharged_kwh > tariff2.kpis.total_ev_energy_discharged_kwh ? 'TRO' : 'DVO'
     }
   ];
 
@@ -284,8 +284,8 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
         <thead>
           <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
             <th style={{ textAlign: 'left', padding: '15px' }}>Parametar</th>
-            <th style={{ textAlign: 'right', padding: '15px', color: '#3b82f6' }}>Hrvatska tarifa</th>
-            <th style={{ textAlign: 'right', padding: '15px', color: '#10b981' }}>HEP tarifa</th>
+            <th style={{ textAlign: 'right', padding: '15px', color: '#3b82f6' }}>Trotarifna</th>
+            <th style={{ textAlign: 'right', padding: '15px', color: '#10b981' }}>Dvotarifna</th>
             <th style={{ textAlign: 'right', padding: '15px' }}>Razlika</th>
             <th style={{ textAlign: 'center', padding: '15px' }}>Bolja</th>
           </tr>
@@ -302,8 +302,8 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
                   <span style={{
                     padding: '5px 15px',
                     borderRadius: '20px',
-                    backgroundColor: row.better === 'HRV' ? '#dbeafe' : '#dcfce7',
-                    color: row.better === 'HRV' ? '#3b82f6' : '#10b981',
+                    backgroundColor: row.better === 'TRO' ? '#dbeafe' : '#dcfce7',
+                    color: row.better === 'TRO' ? '#3b82f6' : '#10b981',
                     fontWeight: 'bold'
                   }}>
                     {row.better}
