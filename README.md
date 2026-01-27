@@ -24,7 +24,7 @@
 
 ```bash
 git clone <url-repozitorija>
-cd python123
+
 ```
 
 ## 3. Instalacija Python ovisnosti (backend)
