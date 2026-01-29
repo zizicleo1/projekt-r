@@ -21,6 +21,7 @@ export function useSimulation() {
   const [comparisonData, setComparisonData] = useState({ tariff1: null, tariff2: null });
   const [loadingComparison, setLoadingComparison] = useState(false);
   const [simulationDate, setSimulationDate] = useState('2025-06-21');
+  const [buildingScale, setBuildingScale] = useState(1.0);
   const [pvgisData, setPvgisData] = useState(null);
   const [loadingPvgis, setLoadingPvgis] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState({ latitude: 45.815, longitude: 15.982 });
@@ -139,12 +140,19 @@ export function useSimulation() {
         pv_scaling: pvScaling,
         building_type: buildingType,
         use_croatian_tariff: useCroatianTariff,
-        simulation_date: simulationDate
+        simulation_date: simulationDate,
+        building_scale: buildingScale
       });
+
+      // Debug: provjeri building_load varijaciju
+      const loads = data.results.map(r => r.building_load_kw);
+      console.log(`[DEBUG] Date: ${simulationDate}, Scale: ${buildingScale}`);
+      console.log(`[DEBUG] Building load - Min: ${Math.min(...loads).toFixed(2)}, Max: ${Math.max(...loads).toFixed(2)}, Avg: ${(loads.reduce((a,b)=>a+b,0)/loads.length).toFixed(2)}`);
 
       setSimulationData(data);
     } catch (err) {
-      setError(`Greska: ${err.message}`);
+      const errorMsg = err?.message || err?.detail || (typeof err === 'string' ? err : JSON.stringify(err));
+      setError(`Greska: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -169,7 +177,8 @@ export function useSimulation() {
         scenario_name: `${buildingType}_${fleetStats.totalCount}EVs`,
         pv_scaling: pvScaling,
         building_type: buildingType,
-        simulation_date: simulationDate
+        simulation_date: simulationDate,
+        building_scale: buildingScale
       };
 
       // Run simulations sequentially to avoid race condition
@@ -179,7 +188,8 @@ export function useSimulation() {
 
       setComparisonData({ tariff1: data1, tariff2: data2 });
     } catch (err) {
-      setError(`Greška pri usporedbi: ${err.message}`);
+      const errorMsg = err?.message || err?.detail || (typeof err === 'string' ? err : JSON.stringify(err));
+      setError(`Greška pri usporedbi: ${errorMsg}`);
     } finally {
       setLoadingComparison(false);
     }
@@ -189,8 +199,8 @@ export function useSimulation() {
     const num = parseInt(value);
     if (isNaN(num) || value === '') {
       setPvCapacityKw('');
-    } else if (num > 200) {
-      setPvCapacityKw(200);
+    } else if (num > 10000) {
+      setPvCapacityKw(10000);
     } else if (num < 0) {
       setPvCapacityKw(0);
     } else {
@@ -250,6 +260,8 @@ export function useSimulation() {
     buildingTypes,
     simulationDate,
     setSimulationDate,
+    buildingScale,
+    setBuildingScale,
     useCroatianTariff,
     setUseCroatianTariff,
     croatianTariff,

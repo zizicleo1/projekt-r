@@ -6,6 +6,8 @@ function ControlPanel({
   buildingTypes,
   simulationDate,
   onSimulationDateChange,
+  buildingScale,
+  onBuildingScaleChange,
   useCroatianTariff,
   onTariffChange,
   showComparison,
@@ -69,39 +71,100 @@ function ControlPanel({
         <div className="control-group">
           <label>
             Datum simulacije (2025):
-            <input
-              type="date"
-              value={simulationDate}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value) {
-                  // Forsiraj godinu 2025
-                  const parts = value.split('-');
-                  if (parts[0] !== '2025') {
-                    const correctedDate = `2025-${parts[1]}-${parts[2]}`;
-                    onSimulationDateChange(correctedDate);
-                  } else {
-                    onSimulationDateChange(value);
-                  }
-                }
-              }}
-              disabled={loading || loadingComparison}
-              min="2025-01-01"
-              max="2025-12-31"
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '1rem',
-                border: '2px solid #667eea',
-                borderRadius: '10px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                marginTop: '10px'
-              }}
-            />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <select
+                value={simulationDate ? simulationDate.split('-')[2] : '15'}
+                onChange={(e) => {
+                  const currentMonth = simulationDate ? simulationDate.split('-')[1] : '06';
+                  onSimulationDateChange(`2025-${currentMonth}-${e.target.value}`);
+                }}
+                disabled={loading || loadingComparison}
+                style={{
+                  width: '80px',
+                  padding: '12px',
+                  fontSize: '1rem',
+                  border: '2px solid #667eea',
+                  borderRadius: '10px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {Array.from({ length: new Date(2025, parseInt(simulationDate?.split('-')[1] || '6'), 0).getDate() }, (_, i) => (
+                  <option key={i + 1} value={(i + 1).toString().padStart(2, '0')}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={simulationDate ? simulationDate.split('-')[1] : '06'}
+                onChange={(e) => {
+                  const currentDay = simulationDate ? simulationDate.split('-')[2] : '15';
+                  const newMonth = e.target.value;
+                  const daysInMonth = new Date(2025, parseInt(newMonth), 0).getDate();
+                  const validDay = Math.min(parseInt(currentDay), daysInMonth).toString().padStart(2, '0');
+                  onSimulationDateChange(`2025-${newMonth}-${validDay}`);
+                }}
+                disabled={loading || loadingComparison}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '1rem',
+                  border: '2px solid #667eea',
+                  borderRadius: '10px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="01">Siječanj</option>
+                <option value="02">Veljača</option>
+                <option value="03">Ožujak</option>
+                <option value="04">Travanj</option>
+                <option value="05">Svibanj</option>
+                <option value="06">Lipanj</option>
+                <option value="07">Srpanj</option>
+                <option value="08">Kolovoz</option>
+                <option value="09">Rujan</option>
+                <option value="10">Listopad</option>
+                <option value="11">Studeni</option>
+                <option value="12">Prosinac</option>
+              </select>
+            </div>
             <small style={{ marginTop: '5px', display: 'block', color: '#666' }}>
               Podaci su dostupni samo za 2025. godinu
             </small>
+          </label>
+        </div>
+
+        <div className="control-group">
+          <label>
+            Skaliranje potrošnje zgrade:
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px' }}>
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={buildingScale}
+                onChange={(e) => onBuildingScaleChange(parseFloat(e.target.value))}
+                disabled={loading || loadingComparison}
+                style={{
+                  flex: 1,
+                  height: '8px',
+                  cursor: loading || loadingComparison ? 'not-allowed' : 'pointer'
+                }}
+              />
+              <span style={{
+                minWidth: '60px',
+                padding: '8px 12px',
+                backgroundColor: '#667eea',
+                color: 'white',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}>
+                {buildingScale.toFixed(1)}x
+              </span>
+            </div>
           </label>
         </div>
 
@@ -145,7 +208,7 @@ function ControlPanel({
                     fontWeight: '600',
                     color: useCroatianTariff ? '#3b82f6' : '#333'
                   }}>
-                    Hrvatska dinamička tarifa (trotarifna naplata)
+                    HEP trotarifna naplata
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
                     VT: 0.213 | ST: 0.125 | NT: 0.066 EUR/kWh
@@ -185,7 +248,7 @@ function ControlPanel({
                     fontWeight: '600',
                     color: !useCroatianTariff ? '#10b981' : '#333'
                   }}>
-                    HEP bijela tarifa (dvotarifna naplata)
+                    HEP dvotarifna naplata
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
                     VT: 0.122 | NT: 0.062 EUR/kWh
@@ -200,7 +263,10 @@ function ControlPanel({
       <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
         <button
           className="btn-primary"
-          onClick={onRunSimulation}
+          onClick={() => {
+            console.log('Button clicked!', { loading, loadingComparison, backendStatus, fleetStats });
+            onRunSimulation();
+          }}
           disabled={loading || loadingComparison || backendStatus !== 'connected' || fleetStats.totalCount === 0}
           style={{ flex: 1 }}
         >

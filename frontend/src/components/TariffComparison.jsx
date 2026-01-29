@@ -238,36 +238,31 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
       label: 'Ukupni trošak',
       val1: formatCurrency(tariff1.kpis.total_cost_eur),
       val2: formatCurrency(tariff2.kpis.total_cost_eur),
-      diff: formatCurrency(Math.abs(tariff1.kpis.total_cost_eur - tariff2.kpis.total_cost_eur)),
-      better: tariff1.kpis.total_cost_eur < tariff2.kpis.total_cost_eur ? 'TRO' : 'DVO'
+      diff: formatCurrency(Math.abs(tariff1.kpis.total_cost_eur - tariff2.kpis.total_cost_eur))
     },
     {
       label: 'Vršna snaga',
       val1: `${formatNumber(tariff1.kpis.peak_load_with_v2b_kw)} kW`,
       val2: `${formatNumber(tariff2.kpis.peak_load_with_v2b_kw)} kW`,
-      diff: `${formatNumber(Math.abs(tariff1.kpis.peak_load_with_v2b_kw - tariff2.kpis.peak_load_with_v2b_kw))} kW`,
-      better: tariff1.kpis.peak_load_with_v2b_kw < tariff2.kpis.peak_load_with_v2b_kw ? 'TRO' : 'DVO'
+      diff: `${formatNumber(Math.abs(tariff1.kpis.peak_load_with_v2b_kw - tariff2.kpis.peak_load_with_v2b_kw))} kW`
     },
     {
       label: 'Smanjenje vršnog opterećenja',
       val1: `${formatNumber(tariff1.kpis.peak_reduction_percent)}%`,
       val2: `${formatNumber(tariff2.kpis.peak_reduction_percent)}%`,
-      diff: `${formatNumber(Math.abs(tariff1.kpis.peak_reduction_percent - tariff2.kpis.peak_reduction_percent))}%`,
-      better: tariff1.kpis.peak_reduction_percent > tariff2.kpis.peak_reduction_percent ? 'TRO' : 'DVO'
+      diff: `${formatNumber(Math.abs(tariff1.kpis.peak_reduction_percent - tariff2.kpis.peak_reduction_percent))}%`
     },
     {
       label: 'Ukupno punjeno',
       val1: `${formatNumber(tariff1.kpis.total_ev_energy_charged_kwh)} kWh`,
       val2: `${formatNumber(tariff2.kpis.total_ev_energy_charged_kwh)} kWh`,
-      diff: `${formatNumber(Math.abs(tariff1.kpis.total_ev_energy_charged_kwh - tariff2.kpis.total_ev_energy_charged_kwh))} kWh`,
-      better: null
+      diff: `${formatNumber(Math.abs(tariff1.kpis.total_ev_energy_charged_kwh - tariff2.kpis.total_ev_energy_charged_kwh))} kWh`
     },
     {
       label: 'Ukupno pražnjeno (V2B)',
       val1: `${formatNumber(tariff1.kpis.total_ev_energy_discharged_kwh)} kWh`,
       val2: `${formatNumber(tariff2.kpis.total_ev_energy_discharged_kwh)} kWh`,
-      diff: `${formatNumber(Math.abs(tariff1.kpis.total_ev_energy_discharged_kwh - tariff2.kpis.total_ev_energy_discharged_kwh))} kWh`,
-      better: tariff1.kpis.total_ev_energy_discharged_kwh > tariff2.kpis.total_ev_energy_discharged_kwh ? 'TRO' : 'DVO'
+      diff: `${formatNumber(Math.abs(tariff1.kpis.total_ev_energy_discharged_kwh - tariff2.kpis.total_ev_energy_discharged_kwh))} kWh`
     }
   ];
 
@@ -287,7 +282,6 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
             <th style={{ textAlign: 'right', padding: '15px', color: '#3b82f6' }}>Trotarifna</th>
             <th style={{ textAlign: 'right', padding: '15px', color: '#10b981' }}>Dvotarifna</th>
             <th style={{ textAlign: 'right', padding: '15px' }}>Razlika</th>
-            <th style={{ textAlign: 'center', padding: '15px' }}>Bolja</th>
           </tr>
         </thead>
         <tbody>
@@ -297,21 +291,6 @@ function DetailedComparisonTable({ tariff1, tariff2 }) {
               <td style={{ textAlign: 'right', padding: '15px' }}>{row.val1}</td>
               <td style={{ textAlign: 'right', padding: '15px' }}>{row.val2}</td>
               <td style={{ textAlign: 'right', padding: '15px', fontWeight: 'bold' }}>{row.diff}</td>
-              <td style={{ textAlign: 'center', padding: '15px' }}>
-                {row.better ? (
-                  <span style={{
-                    padding: '5px 15px',
-                    borderRadius: '20px',
-                    backgroundColor: row.better === 'TRO' ? '#dbeafe' : '#dcfce7',
-                    color: row.better === 'TRO' ? '#3b82f6' : '#10b981',
-                    fontWeight: 'bold'
-                  }}>
-                    {row.better}
-                  </span>
-                ) : (
-                  <span style={{ color: '#6b7280' }}>-</span>
-                )}
-              </td>
             </tr>
           ))}
         </tbody>

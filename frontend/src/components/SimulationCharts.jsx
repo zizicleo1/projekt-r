@@ -16,12 +16,16 @@ function SimulationCharts({ simulationData }) {
     r.tariff_period === 'mid-peak' || r.tariff_period === 'mid_peak'
   );
 
+  // Generiraj jedinstveni ključ za forsiranje re-renderanja chartova
+  // Koristi hash od prvih nekoliko vrijednosti building_load
+  const chartKey = simulationData.results.slice(0, 10).map(r => r.building_load_kw.toFixed(1)).join('-');
+
   return (
     <div className="charts-container">
       <div className="chart-wrapper">
         <h2>Energetska bilanca sustava</h2>
         <div className="chart-box">
-          <Line data={preparePowerChart(simulationData)} options={baseChartOptions} />
+          <Line key={`power-${chartKey}`} data={preparePowerChart(simulationData)} options={baseChartOptions} />
         </div>
         <div className="chart-info">
           <p><strong>Crvena:</strong> Potrošnja zgrade (P_zgrada)</p>
@@ -33,34 +37,33 @@ function SimulationCharts({ simulationData }) {
       <div className="chart-wrapper">
         <h2>V2B Peak Shaving - Smanjenje vršnog opterećenja</h2>
         <div className="chart-box">
-          <Line data={preparePeakShavingChart(simulationData)} options={peakShavingChartOptions} />
+          <Line key={`peak-${chartKey}`} data={preparePeakShavingChart(simulationData)} options={peakShavingChartOptions} />
         </div>
         <div className="chart-info">
           <p><strong>Crvena linija:</strong> Potrošnja zgrade bez optimizacije</p>
           <p><strong>Plava površina:</strong> Opterećenje s V2B (smanjeno)</p>
           <p><strong>Zelena površina:</strong> PV proizvodnja</p>
-          <p><strong>Crveni barovi:</strong> EV punjenje (+{simulationData.kpis.total_ev_energy_charged_kwh.toFixed(1)} kWh)</p>
-          <p><strong>Plavi barovi:</strong> EV pražnjenje V2B (-{simulationData.kpis.total_ev_energy_discharged_kwh.toFixed(1)} kWh)</p>
+          <p><strong>Crveni stupci:</strong> EV punjenje (+{simulationData.kpis.total_ev_energy_charged_kwh.toFixed(1)} kWh)</p>
+          <p><strong>Plavi stupci:</strong> EV pražnjenje V2B (-{simulationData.kpis.total_ev_energy_discharged_kwh.toFixed(1)} kWh)</p>
         </div>
       </div>
 
       <div className="chart-wrapper">
         <h2>Stanje napunjenosti baterija (SOC)</h2>
         <div className="chart-box">
-          <Line data={prepareSOCChart(simulationData)} options={socChartOptions} />
+          <Line key={`soc-${chartKey}`} data={prepareSOCChart(simulationData)} options={socChartOptions} />
         </div>
         <div className="chart-info">
           <p><strong>Formula:</strong> SoC_k+1 = SoC_k + (Δt/B) · (η_punj · P_punj - P_praž/η_praž)</p>
           <p><strong>Početni SOC:</strong> {(simulationData.fleet_summary.avg_initial_soc * 100).toFixed(1)}%</p>
           <p><strong>Završni SOC:</strong> {(simulationData.fleet_summary.avg_final_soc * 100).toFixed(1)}%</p>
-          <p><strong>Uspješnost:</strong> {simulationData.kpis.evs_meeting_target}/{simulationData.kpis.total_evs} vozila dostiglo cilj ({simulationData.kpis.ev_success_rate_percent.toFixed(1)}%)</p>
         </div>
       </div>
 
       <div className="chart-wrapper">
         <h2>Distribucija troškova po tarifnim zonama</h2>
         <div className="chart-box">
-          <Bar data={prepareCostChart(simulationData)} options={baseChartOptions} />
+          <Bar key={`cost-${chartKey}`} data={prepareCostChart(simulationData)} options={baseChartOptions} />
         </div>
         <div className="chart-info">
           {hasMidPeak ? (
@@ -81,7 +84,7 @@ function SimulationCharts({ simulationData }) {
       <div className="chart-wrapper">
         <h2>Aktivnost EV flote kroz dan</h2>
         <div className="chart-box">
-          <Bar data={prepareEVActivityChart(simulationData)} options={evActivityChartOptions} />
+          <Bar key={`ev-${chartKey}`} data={prepareEVActivityChart(simulationData)} options={evActivityChartOptions} />
         </div>
         <div className="chart-info">
           <p><strong>Crveno (+):</strong> Broj vozila koja se pune</p>
@@ -92,13 +95,12 @@ function SimulationCharts({ simulationData }) {
       <div className="chart-wrapper">
         <h2>Usporedba: Bez V2B vs S V2B</h2>
         <div className="chart-box">
-          <Line data={prepareComparisonChart(simulationData)} options={comparisonChartOptions} />
+          <Line key={`comp-${chartKey}`} data={prepareComparisonChart(simulationData)} options={comparisonChartOptions} />
         </div>
         <div className="chart-info">
           <p><strong>Crvena linija:</strong> Opterećenje mreže BEZ V2B (P_zgrada - P_PV)</p>
           <p><strong>Plava površina:</strong> Opterećenje mreže S V2B optimizacijom</p>
-          <p><strong>Vršno opterećenje:</strong> Baseline {simulationData.kpis.peak_load_baseline_kw} kW → S V2B {simulationData.kpis.peak_load_with_v2b_kw} kW</p>
-          <p><strong>Smanjenje:</strong> {simulationData.kpis.peak_reduction_percent.toFixed(1)}%</p>
+          
         </div>
       </div>
     </div>

@@ -594,7 +594,7 @@ class V2BController:
     
     def run_simulation(self, num_evs: int, scenario_name: str = "default",
                       pv_scaling: float = 1.0, ev_fleet_config: list = None,
-                      simulation_date: str = None) -> Dict:
+                      simulation_date: str = None, building_scale: float = 1.0) -> Dict:
         """
         Pokreni simulaciju
 
@@ -614,6 +614,8 @@ class V2BController:
             print(f"Fleet config: {ev_fleet_config}")
         if simulation_date:
             print(f"Simulation date: {simulation_date}")
+        if building_scale != 1.0:
+            print(f"Building scale: {building_scale}x")
         print(f"{'='*60}\n")
 
         # Ako je specificiran datum, učitaj profile za taj dan
@@ -629,23 +631,41 @@ class V2BController:
         # Koristi pv_profile (moze biti vec skaliran od main.py)
         P_PV_scaled = self.pv_profile if hasattr(self, 'pv_profile') else (self.P_PV * pv_scaling)
 
+        # Skaliraj profil potrosnje zgrade
+        P_building_scaled = self.P_building * building_scale
+
         # Izracunaj energetsku bilancu sustava (formula s papira):
         # P_mreza(t) = P_zgrada(t) + Σ P_EV_i(t) - P_PV(t)
         #                           i=1..N
         # Gdje Σ P_EV_i(t) moze biti:
         #   - Pozitivno: automobili se pune (povlace energiju iz mreze)
         #   - Negativno: automobili podrzavaju zgradu (V2B praznjenje)
-        P_grid = self.P_building + np.sum(P_EV, axis=0) - P_PV_scaled
+        P_grid = P_building_scaled + np.sum(P_EV, axis=0) - P_PV_scaled
         P_grid = np.maximum(P_grid, 0)  # Grid ne moze biti negativan (nema izvoz)
         
-        # Izračunaj troškove
+        # Izračunaj troškove S V2B optimizacijom
         total_cost = 0.0
         for t in range(self.T):
             cost = P_grid[t] * self.dt * self.tariff[t]['price_kwh']
             total_cost += cost
-        
+
+        # Izračunaj troškove BEZ V2B optimizacije (baseline)
+        # Baseline: zgrada - PV (bez EV-ova koji pomažu)
+        # Ali moramo uračunati punjenje EV-ova - pretpostavljamo da se pune odmah po dolasku
+        P_ev_charging_only = np.maximum(P_EV, 0)  # Samo punjenje, bez V2B pražnjenja
+        P_grid_baseline = P_building_scaled + np.sum(P_ev_charging_only, axis=0) - P_PV_scaled
+        P_grid_baseline = np.maximum(P_grid_baseline, 0)
+
+        total_cost_baseline = 0.0
+        for t in range(self.T):
+            cost = P_grid_baseline[t] * self.dt * self.tariff[t]['price_kwh']
+            total_cost_baseline += cost
+
+        # Ušteda s V2B
+        cost_savings = total_cost_baseline - total_cost
+
         # KPI pokazatelji (Formula 14 iz PDF-a)
-        peak_baseline = np.max(self.P_building - P_PV_scaled)
+        peak_baseline = np.max(P_grid_baseline)
         peak_v2b = np.max(P_grid)
         peak_reduction = ((peak_baseline - peak_v2b) / peak_baseline * 100) if peak_baseline > 0 else 0
         
@@ -674,7 +694,7 @@ class V2BController:
             results.append({
                 'slot': t,
                 'time': f"{hour:02d}:{minute:02d}",
-                'building_load_kw': round(self.P_building[t], 2),
+                'building_load_kw': round(P_building_scaled[t], 2),
                 'pv_generation_kw': round(P_PV_scaled[t], 2),
                 'ev_power_kw': round(np.sum(P_EV[:, t]), 2),
                 'grid_power_kw': round(P_grid[t], 2),
@@ -686,6 +706,8 @@ class V2BController:
         
         kpis = {
             'total_cost_eur': round(total_cost, 2),
+            'total_cost_baseline_eur': round(total_cost_baseline, 2),
+            'cost_savings_eur': round(cost_savings, 2),
             'peak_load_baseline_kw': round(peak_baseline, 2),
             'peak_load_with_v2b_kw': round(peak_v2b, 2),
             'peak_reduction_percent': round(peak_reduction, 2),
@@ -703,7 +725,8 @@ class V2BController:
             'avg_final_soc': round(np.mean(final_socs), 3),
             'avg_required_soc': round(self.SoC_req, 3),
             'avg_trip_distance_km': round(np.mean(self.trip_dist), 2),
-            'simulation_date': simulation_date if simulation_date else 'default (first day)'
+            'simulation_date': simulation_date if simulation_date else 'default (first day)',
+            'building_scale': building_scale
         }
         
         print(f"\nSimulation complete!")

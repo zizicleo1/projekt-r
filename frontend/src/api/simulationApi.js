@@ -50,6 +50,7 @@ export const fetchEvCatalog = async () => {
 };
 
 export const runAdvancedSimulation = async (config) => {
+  console.log('Sending config to API:', config);
   const response = await fetch(`${API_URL}/api/simulate-advanced`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,8 +58,12 @@ export const runAdvancedSimulation = async (config) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    try {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
+    } catch (parseErr) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
   }
 
   const data = await response.json();
