@@ -3,8 +3,8 @@ import React from 'react';
 function Header() {
   return (
     <header className="app-header">
-      <h1>V2B Digital Twin</h1>
-      <p>Vehicle-to-Building Energy Management System</p>
+      <h1>V2B Digitalni Blizanac</h1>
+      
     </header>
   );
 }

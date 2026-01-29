@@ -239,7 +239,7 @@ class DataExtractor:
             print(f"   Sample podataka:")
             print(df_hourly.head(3))
             
-            # Interpolacija na 15min - PAŽLJIVO
+            # Interpolacija na 15min 
             print("\nInterpolacija na 15min...")
             df_hourly_indexed = df_hourly.set_index('timestamp')
             
@@ -261,7 +261,7 @@ class DataExtractor:
             # Provjera
             null_count = df_15min['pv_power_kw'].isnull().sum()
             if null_count > 0:
-                print(f"⚠️  {null_count} null vrijednosti - popunjavam s 0")
+                print(f"  {null_count} null vrijednosti - popunjavam s 0")
                 df_15min['pv_power_kw'].fillna(0, inplace=True)
                 df_15min['solar_irradiance_w_m2'].fillna(0, inplace=True)
                 df_15min['temp_air_c'].fillna(0, inplace=True)

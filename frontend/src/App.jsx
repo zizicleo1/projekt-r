@@ -57,6 +57,8 @@ function App() {
     buildingTypes,
     simulationDate,
     setSimulationDate,
+    buildingScale,
+    setBuildingScale,
     useCroatianTariff,
     setUseCroatianTariff,
     showComparison,
@@ -101,6 +103,8 @@ function App() {
         buildingTypes={buildingTypes}
         simulationDate={simulationDate}
         onSimulationDateChange={setSimulationDate}
+        buildingScale={buildingScale}
+        onBuildingScaleChange={setBuildingScale}
         useCroatianTariff={useCroatianTariff}
         onTariffChange={setUseCroatianTariff}
         showComparison={showComparison}

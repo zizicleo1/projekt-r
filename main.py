@@ -14,7 +14,6 @@ from pathlib import Path
 import httpx
 import logging
 
-# Konfiguriraj logging - filtriraj spam zahtjeve
 class EndpointFilter(logging.Filter):
     """Filter za uklanjanje spam zahtjeva iz loga"""
     def filter(self, record: logging.LogRecord) -> bool:
@@ -87,8 +86,8 @@ class SimulationParams(BaseModel):
     pv_scaling: Optional[float] = Field(
         default=1.0,
         ge=0.0,
-        le=10.0,
-        description="PV skaliranje faktora (0.0-10.0)"
+        le=100.0,
+        description="PV skaliranje faktora (0.0-100.0)"
     )
     building_type: Optional[str] = Field(
         default="office",
@@ -101,6 +100,12 @@ class SimulationParams(BaseModel):
     simulation_date: Optional[str] = Field(
         default=None,
         description="Datum simulacije u formatu YYYY-MM-DD (npr. 2020-06-21)"
+    )
+    building_scale: Optional[float] = Field(
+        default=1.0,
+        ge=0.5,
+        le=5.0,
+        description="Faktor skaliranja profila potrosnje zgrade (0.5-5.0)"
     )
 
 class CompareRequest(BaseModel):
@@ -121,7 +126,7 @@ class PVGISRequest(BaseModel):
         description="Geografska duzina (longitude)"
     )
     peakpower: float = Field(
-        default=30.0, ge=0.1, le=1000,
+        default=30.0, ge=0.1, le=10000,
         description="Vrsna snaga PV sustava u kW"
     )
     loss: float = Field(
@@ -449,6 +454,7 @@ def run_simulation_advanced(params: SimulationParams):
         print(f"   - PV scaling: {params.pv_scaling}x")
         print(f"   - Croatian tariff: {params.use_croatian_tariff}")
         print(f"   - Simulation date: {params.simulation_date}")
+        print(f"   - Building scale: {params.building_scale}x")
         print(f"{'='*60}\n")
 
         # Regeneriraj building profil ako je drugaciji tip
@@ -475,7 +481,8 @@ def run_simulation_advanced(params: SimulationParams):
             num_evs=total_evs,
             scenario_name=f"{params.building_type}_{total_evs}EVs",
             ev_fleet_config=fleet_config_dict,
-            simulation_date=params.simulation_date
+            simulation_date=params.simulation_date,
+            building_scale=params.building_scale
         )
 
         controller.close()
@@ -493,7 +500,8 @@ def run_simulation_advanced(params: SimulationParams):
                 "building_type": params.building_type,
                 "pv_scaling": params.pv_scaling,
                 "croatian_tariff": params.use_croatian_tariff,
-                "scenario_name": params.scenario_name
+                "scenario_name": params.scenario_name,
+                "building_scale": params.building_scale
             },
             "data": simulation_data
         }

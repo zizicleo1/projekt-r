@@ -10,7 +10,18 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light only;
+}
+
+/* Force dark text for form elements in dark mode browsers */
+select, option, input[type="text"], input[type="number"] {
+  color: #333 !important;
+  background-color: white !important;
+}
+
 body {
+  color: #333;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 
                'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 

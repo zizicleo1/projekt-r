@@ -30,7 +30,7 @@ function LocationPicker({
   disabled = false
 }) {
   const [position, setPosition] = useState({ latitude: 45.815, longitude: 15.982 });
-  const [peakPower, setPeakPower] = useState(30);
+  const [peakPower, setPeakPower] = useState(100);
 
   const handleLocationSelect = (loc) => {
     if (disabled) return;
@@ -102,7 +102,7 @@ function LocationPicker({
           minWidth: '180px'
         }}>
           <strong style={{ color: '#667eea' }}>Odabrana lokacija:</strong>
-          <div style={{ marginTop: '10px', fontSize: '0.9rem' }}>
+          <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#333' }}>
             <div>Lat: {position.latitude.toFixed(4)}°</div>
             <div>Lon: {position.longitude.toFixed(4)}°</div>
           </div>
@@ -110,15 +110,26 @@ function LocationPicker({
 
         <div style={{ flex: '1', minWidth: '180px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>
-            PV kapacitet (kWp):
+            PV kapacitet (kWh):
           </label>
           <input
             type="number"
             min="1"
-            max="1000"
-            step="1"
+            max="10000"
             value={peakPower}
-            onChange={(e) => setPeakPower(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '' || val === '0') {
+                setPeakPower('');
+              } else {
+                setPeakPower(parseInt(val) || '');
+              }
+            }}
+            onBlur={(e) => {
+              const val = parseInt(e.target.value);
+              if (!val || val < 1) setPeakPower(1);
+              else if (val > 10000) setPeakPower(10000);
+            }}
             disabled={disabled || loading}
             style={{
               width: '100%',
@@ -180,11 +191,12 @@ function LocationPicker({
                       backgroundColor: '#dcfce7',
                       borderRadius: '5px',
                       textAlign: 'center',
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      color: '#333'
                     }}
                   >
                     <div style={{ fontWeight: 'bold', color: '#166534' }}>{month}</div>
-                    <div>{pvgisData.monthly_production_kwh[`month_${i + 1}`]}</div>
+                    <div style={{ color: '#333' }}>{pvgisData.monthly_production_kwh[`month_${i + 1}`]}</div>
                   </div>
                 ))}
               </div>
